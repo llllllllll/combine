@@ -1,0 +1,12 @@
+build/
+
+*.egg-info
+
+# python artifacts
+*.pyc
+
+# osu! API key
+.api-key
+
+.password
+models/*

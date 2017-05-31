@@ -12,7 +12,7 @@ from slider.client import ApprovedState
 
 class _command:
     def __init__(self, names, f):
-        self.names = tuple('!' + name for name in names)
+        self.names = names
         self.f = f
 
 
@@ -68,7 +68,7 @@ class Handler:
             return
 
         try:
-            f(self, client, user, channel, data)
+            f(self, client, user, data)
         except CommandFailure as e:
             client.send(user, f'Error: {e}')
 
@@ -94,7 +94,7 @@ class CombineHandler(Handler):
         self.token_secret = token_secret
 
         self.get_model = lru_cache(model_cache_size)(self._get_model)
-        self._user_average = {}
+        self._user_stats = {}
 
         self._candidates = self._gen_candidates()
 
@@ -154,8 +154,8 @@ class CombineHandler(Handler):
         )
         return zip(mod_masks, accuracy, pp)
 
-    @command('r', 'rec', 'recommend')
-    def recommend(self, client, user, channel, msg):
+    @command('!r', '!rec', '!recommend')
+    def recommend(self, client, user, msg):
         if msg:
             raise CommandFailure(f'recommend takes no arguments, got: {msg!r}')
 
@@ -167,17 +167,25 @@ class CombineHandler(Handler):
             )
 
         try:
-            user_average = self._user_average[user]
+            user_average, user_std = self._user_stats[user]
         except KeyError:
-            user_average = self._user_average[user] = np.mean([
+            pp = np.array([
                 hs.pp
                 for hs in self.osu_client.user_best(user_name=user, limit=100)
             ])
+            (user_average, user_std) = self._user_stats[user] = (
+                pp.mean(),
+                pp.std(),
+            )
+
+        # The model isn't very accurate for really hard maps it hasn't seen
+        # This keeps the suggestions reasonable.
+        upper = user_average + 2 * user_std
 
         for candidate in self._candidates:
             beatmap = candidate.beatmap
             for mask, accuracy, pp in self._predict_all_mods(model, beatmap):
-                if pp > user_average and accuracy > 0.95:
+                if user_average <= pp <= upper and accuracy > 0.95:
                     if not any(mask.values()):
                         mods = ''
                     else:

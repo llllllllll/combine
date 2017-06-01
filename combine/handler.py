@@ -251,22 +251,23 @@ class CombineHandler(Handler):
             )
 
         try:
-            user_average, user_std = self._user_stats[user]
+            user_average, user_std, user_max = self._user_stats[user]
         except KeyError:
             pp = np.array([
                 hs.pp
                 for hs in self.osu_client.user_best(user_name=user, limit=100)
             ])
-            (user_average, user_std) = self._user_stats[user] = (
+            user_average, user_std, user_max = self._user_stats[user] = (
                 pp.mean(),
                 pp.std(),
+                pp.max()
             )
 
         with_mods, without_mods = self._parse_recommend_args(msg)
 
         # The model isn't very accurate for really hard maps it hasn't seen
         # This keeps the suggestions reasonable.
-        upper = user_average + 2 * user_std
+        upper = user_max + (user_std / 2)
 
         for candidate in self._candidates:
             beatmap = candidate.beatmap
@@ -301,7 +302,6 @@ class CombineHandler(Handler):
         if msg:
             raise CommandFailure(f'gen-token takes no arguments, got: {msg!r}')
 
-        now = pd.Timestamp.now(tz='utc')
         client.send(user, f'token: {gen_token(self.token_secret, user)}')
         client.send(
             user,

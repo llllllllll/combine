@@ -8,7 +8,7 @@ import flask
 from gunicorn.app.base import BaseApplication
 import numpy as np
 import pandas as pd
-from slider import Replay
+from slider import Replay, GameMode
 from slider.model import extract_feature_array, train_model
 
 
@@ -163,7 +163,8 @@ def extract_from_form(files, library, age):
                 datetime.datetime.utcnow() - replay.timestamp > age):
             continue
 
-        if (replay.autoplay or
+        if (replay.mode != GameMode.standard or
+                replay.autoplay or
                 replay.spun_out or
                 replay.auto_pilot or
                 replay.cinema or

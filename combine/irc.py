@@ -65,7 +65,7 @@ class Client:
 
     @_check_running
     def _privmsg(self, channel, user, msg):
-        return self.message_handler(self, user, channel, msg)
+        return self.message_handler(self, user, channel, msg.strip())
 
     @_check_running
     def _ignore(self, user, data):

@@ -1,136 +1,131 @@
 import click
+from straitlets.ext.click import YamlConfigFile
+
+from .config import Config
 
 
 @click.group()
-def main():
-    pass
+@click.option(
+    '--config',
+    default='config.yml',
+    type=YamlConfigFile(Config),
+)
+@click.pass_context
+def main(ctx, config):
+    ctx.obj = config
 
 
 @main.command()
-@click.option(
-    '--maps',
-    envvar='COMBINE_MAPS',
-    required=True,
-)
-@click.option(
-    '--models',
-    envvar='COMBINE_MODELS',
-    required=True,
-)
-@click.option(
-    '--model-cache-size',
-    envvar='COMBINE_MODEL_CACHE_SIZE',
-    default=24,
-    type=int,
-)
-@click.option(
-    '--token-secret',
-    envvar='COMBINE_TOKEN_SECRET',
-    required=True,
-)
-@click.option(
-    '--api-key',
-    envvar='COMBINE_API_KEY',
-    required=True,
-)
-@click.option(
-    '--username',
-    envvar='COMBINE_USERNAME',
-    required=True,
-)
-@click.option(
-    '--password',
-    envvar='COMBINE_PASSWORD',
-    required=True,
-)
-@click.option(
-    '--irc-server',
-    envvar='COMBINE_IRC_SERVER',
-    default='cho.ppy.sh',
-)
-@click.option(
-    '--irc-port',
-    envvar='COMBINE_IRC_PORT',
-    default=6667,
-    type=int,
-)
-def serve(maps,
-          models,
-          model_cache_size,
-          token_secret,
-          api_key,
-          username,
-          password,
-          irc_server,
-          irc_port):
+@click.pass_obj
+def irc(obj):
+    """Serve the irc bot an enter into a repl where you can send the bot user
+    messages directly.
+    """
+    import readline  # noqa
+    from textwrap import dedent
+
     from slider import Library, Client
 
     from . import irc
     from .handler import CombineHandler
 
-    library = Library(maps)
-    osu_client = Client(library, api_key)
+    library = Library(obj.maps)
+    osu_client = Client(library, obj.api_key)
 
+    username = obj.username
     handler = CombineHandler(
         username,
         osu_client,
-        models,
-        model_cache_size,
-        token_secret,
+        obj.models,
+        obj.model_cache_size,
+        obj.token_secret,
+        obj.upload_url,
     )
 
     c = irc.Client(
-        irc_server,
-        irc_port,
+        obj.irc.server,
+        obj.irc.port,
         username,
-        password,
+        obj.password,
         'osu',
         handler,
     )
 
-    c = irc.Client(
-        irc_server,
-        irc_port,
-        username,
-        password,
-        'osu',
-        handler,
-    )
+    print(dedent(
+        """Running combine IRC server!
+
+        Commands:
+
+          !r[ec[ommend]] : send yourself a recommendation
+          !gen-token     : generate an upload token for yourself
+        """,
+    ))
     with c:
         while True:
             try:
-                input('hit enter to send youself a recommendation ')
+                command = input('> ')
             except EOFError:
                 print()
                 break
 
-            handler(c, username, username, '!r')
-            print('sent!')
+            if command:
+                handler(c, username, username, command)
+
+
+@main.command('gen-token')
+@click.option(
+    '-u',
+    '--user',
+    help='The user to create a token for.',
+    required=True,
+)
+@click.pass_obj
+def gen_token(obj, user):
+    """Generate a token for a user.
+    """
+    from cryptography.fernet import Fernet
+
+    from .token import gen_token
+
+    print(gen_token(Fernet(obj.token_secret), user))
+
+
+@main.command()
+@click.pass_obj
+def uploader(obj):
+    """Serve the replay upload page.
+    """
+    from slider import Library
+
+    from .uploader import build_app
+
+    build_app(
+        model_cache_dir=obj.models,
+        token_secret=obj.token_secret,
+        library=Library(obj.maps),
+        gunicorn_options=obj.gunicorn.to_dict(),
+    ).run()
 
 
 @main.command()
 @click.option(
     '--user',
     required=True,
+    help='The user the train the model for.',
 )
 @click.option(
     '--replays',
     required=True,
+    help='The directory of replays to train against with.'
 )
 @click.option(
     '--age',
+    help='The age of replays to consider when training.',
 )
-@click.option(
-    '--maps',
-    envvar='COMBINE_MAPS',
-    required=True,
-)
-@click.option(
-    '--models',
-    envvar='COMBINE_MODELS',
-    required=True,
-)
-def train(user, replays, age, maps, models):
+@click.pass_obj
+def train(obj, user, replays, age):
+    """Manually train the model for a given user.
+    """
     import os
     import pickle
 
@@ -141,10 +136,9 @@ def train(user, replays, age, maps, models):
     if age is not None:
         age = pd.Timedelta(age)
 
-    m = train_from_replay_directory(replays, Library(maps), age=age)
-    with open(os.path.join(models, user), 'wb') as f:
+    m = train_from_replay_directory(replays, Library(obj.maps), age=age)
+    with open(os.path.join(obj.models, user), 'wb') as f:
         pickle.dump(m, f)
-
 
 
 if __name__ == '__main__':

@@ -5,8 +5,6 @@ build/
 # python artifacts
 *.pyc
 
-# osu! API key
-.api-key
+data/*
 
-.password
-models/*
+config.yml

@@ -17,15 +17,14 @@ setup(
     author_email='joejev@gmail.com',
     packages=find_packages(),
     long_description=long_description,
-    license='LGPLv3+',
+    license='GPLv3+',
     classifiers=[
         'Development Status :: 3 - Alpha',
-        'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)',  # noqa
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',  # noqa
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: Games/Entertainment',
     ],
     url='https://github.com/llllllllll/combine',
-    install_requires=['slider'],
 )

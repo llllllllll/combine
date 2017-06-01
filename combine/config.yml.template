@@ -1,0 +1,17 @@
+api_key: <api-key>
+gunicorn:
+  accesslog: '-'
+  bind: localhost:5000
+  error: '-'
+  timeout: 6000
+  workers: 2
+irc:
+  port: 6667
+  server: cho.ppy.sh
+maps: data/maps
+model_cache_size: 24
+models: data/models
+password: <password>
+token_secret_path: data/token-secret
+username: <username>
+upload_url : http://localhost/

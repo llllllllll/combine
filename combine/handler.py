@@ -155,7 +155,7 @@ class CombineHandler(Handler):
 
             candidate = candidates.pop()
             if (candidate.approved == ApprovedState.ranked and
-                    len(candidate.beatmap.hit_objects) >= 2):
+                    len(candidate.beatmap(save=True).hit_objects) >= 2):
                 yield candidate
 
     @staticmethod
@@ -270,7 +270,7 @@ class CombineHandler(Handler):
         upper = user_max + (user_std / 2)
 
         for candidate in self._candidates:
-            beatmap = candidate.beatmap
+            beatmap = candidate.beatmap()
             predictions = self._predict(
                 model,
                 beatmap,

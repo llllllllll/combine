@@ -3,7 +3,7 @@ combine
 
 IRC bot for suggesting beatmaps based on your replay data.
 
-Try it out by uploading your replays to `http://combine.jevnik.moe`_ and then
+Try it out by uploading your replays to http://combine.jevnik.moe_ and then
 messaging JoeJev ``!r`` in osu!.
 
 Commands

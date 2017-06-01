@@ -1,0 +1,27 @@
+worker_processes  1;
+
+events {
+}
+
+
+http {
+    upstream gunicorn {
+        server "unix:/tmp/gunicorn_run/gunicorn.sock";
+    }
+
+    server {
+        listen 0.0.0.0:80;
+        client_max_body_size 0;
+
+        underscores_in_headers on;
+
+        location / {
+            # Set X-Real-IP, X-Forwarded-For, Host, and X-Forwarded-Proto
+            proxy_set_header X-Forwarded-Ssl on;
+            proxy_set_header X-Url-Scheme https;
+
+            proxy_read_timeout 600;
+            proxy_pass http://gunicorn;
+        }
+    }
+}

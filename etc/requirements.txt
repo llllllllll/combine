@@ -1,8 +1,12 @@
+Flask==0.12.2
 click==6.7
 cryptography==1.9
+gunicorn==19.7.1
 numpy==1.12.1
 pandas==0.19.2
-scikit-learn==0.18.1
 requests==2.13.0
+scikit-learn==0.18.1
+scipy==-0.19.0
+straitlets==0.3.1
 
 -e submodules/slider

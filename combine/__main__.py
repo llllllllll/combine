@@ -95,14 +95,14 @@ def gen_token(obj, user):
 def uploader(obj):
     """Serve the replay upload page.
     """
-    from slider import Library
+    from slider import Library, Client
 
     from .uploader import build_app
 
     build_app(
         model_cache_dir=obj.models,
         token_secret=obj.token_secret,
-        library=Library(obj.maps),
+        client=Client(Library(obj.maps), obj.api_key),
         gunicorn_options=obj.gunicorn.to_dict(),
     ).run()
 
@@ -130,13 +130,17 @@ def train(obj, user, replays, age):
     import pickle
 
     import pandas as pd
-    from slider import Library
+    from slider import Library, Client
     from slider.model import train_from_replay_directory
 
     if age is not None:
         age = pd.Timedelta(age)
 
-    m = train_from_replay_directory(replays, Library(obj.maps), age=age)
+    m = train_from_replay_directory(
+        replays,
+        Client(Library(obj.maps), obj.api_key),
+        age=age,
+    )
     with open(os.path.join(obj.models, user), 'wb') as f:
         pickle.dump(m, f)
 

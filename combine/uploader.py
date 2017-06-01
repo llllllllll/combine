@@ -20,7 +20,7 @@ def _register_api(app, options, first_registration=False):
     _app_data[app] = (
         options['model_cache_dir'],
         options['token_secret'],
-        options['library'],
+        options['client'],
     )
 
     # Call the original register function.
@@ -86,7 +86,7 @@ def index():
 
 @api.route('/train', methods=['POST'])
 def train():
-    model_cache_dir, token_secret, library = _app_data[flask.current_app]
+    model_cache_dir, token_secret, client = _app_data[flask.current_app]
     try:
         token = json.loads(token_secret.decrypt(
             flask.request.form['token'].encode('ascii'),
@@ -112,26 +112,30 @@ def train():
     else:
         age = None
 
-    model = train_from_form(
-        flask.request.files.getlist('replays'),
-        library,
-        age,
-    )
+    try:
+        model = train_from_form(
+            flask.request.files.getlist('replays'),
+            client,
+            age,
+        )
+    except Exception as e:
+        return str(e), 400
+
     with open(model_cache_dir / user, 'wb') as f:
         pickle.dump(model, f)
 
     return 'model trained! you may now ask for recommendations with !r'
 
 
-def extract_from_form(files, library, age):
+def extract_from_form(files, client, age):
     """Extract features from the files uploaded.
 
     Parameters
     ----------
     files : Iterable[FileStorage]
         Files uploaded in the form.
-    library : Library
-        The beatmap library to use when parsing the replays.
+    client : Client
+        The client used to fetch beatmaps.
     age : datetime.timedelta, optional
         Only count replays less than this age old.
 
@@ -158,7 +162,11 @@ def extract_from_form(files, library, age):
         if not entry.filename.endswith('.osr'):
             continue
 
-        replay = Replay.parse(entry.read(), library=library)
+        try:
+            replay = Replay.parse(entry.read(), client=client, save=True)
+        except Exception:
+            continue
+
         if (age is not None and
                 datetime.datetime.utcnow() - replay.timestamp > age):
             continue
@@ -168,11 +176,9 @@ def extract_from_form(files, library, age):
                 replay.spun_out or
                 replay.auto_pilot or
                 replay.cinema or
-                replay.relax):
+                replay.relax or
+                len(replay.beatmap.hit_objects) < 2):
             # ignore plays with mods that are not representative of user skill
-            continue
-
-        if len(replay.beatmap.hit_objects) < 2:
             continue
 
         beatmap_and_mod_append((
@@ -187,20 +193,23 @@ def extract_from_form(files, library, age):
         ))
         accuracy_append(replay.accuracy)
 
+    if not beatmaps_and_mods:
+        return np.array([]), np.array([])
+
     fs = extract_feature_array(beatmaps_and_mods)
     mask = np.isfinite(fs).all(axis=1)
     return fs[mask], np.array(accuracies)[mask]
 
 
-def train_from_form(files, library, age):
+def train_from_form(files, client, age):
     """Train a model from uploaded form files.
 
     Parameters
     ----------
     files : Iterable[FileStorage]
         Files uploaded in the form.
-    library : Library
-        The beatmap library to use when parsing the replays.
+    client : Client
+        The client used to fetch beatmaps.
     age : datetime.timedelta, optional
         Only count replays less than this age old.
 
@@ -215,10 +224,13 @@ def train_from_form(files, library, age):
     The same beatmap may appear more than once if there are multiple replays
     for this beatmap.
     """
-    return train_model(*extract_from_form(files, library, age))
+    labels, acc = extract_from_form(files, client, age)
+    if not len(labels):
+        raise ValueError('no valid replays found')
+    return train_model(labels, acc)
 
 
-def build_app(model_cache_dir, token_secret, library, gunicorn_options):
+def build_app(model_cache_dir, token_secret, client, gunicorn_options):
     """Build the app object.
 
     Parameters
@@ -227,8 +239,8 @@ def build_app(model_cache_dir, token_secret, library, gunicorn_options):
         The path to the model directory.
     token_secret : bytes
         The shared secret for the uploader and irc server.
-    library : Library
-        The beatmap library.
+    client : Library
+        The client used to fetch beatmaps.
     gunicorn_options : dict
         Options to forward to gunicorn
 
@@ -242,7 +254,7 @@ def build_app(model_cache_dir, token_secret, library, gunicorn_options):
         api,
         model_cache_dir=pathlib.Path(model_cache_dir),
         token_secret=Fernet(token_secret),
-        library=library,
+        client=client,
     )
 
     class app(BaseApplication):

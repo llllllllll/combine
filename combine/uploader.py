@@ -162,10 +162,7 @@ def extract_from_form(files, client, age):
         if not entry.filename.endswith('.osr'):
             continue
 
-        try:
-            replay = Replay.parse(entry.read(), client=client, save=True)
-        except Exception:
-            continue
+        replay = Replay.parse(entry.read(), client=client, save=True)
 
         if (age is not None and
                 datetime.datetime.utcnow() - replay.timestamp > age):

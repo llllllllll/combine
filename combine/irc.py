@@ -65,13 +65,21 @@ class Client:
         with self._write_lock:
             self._socket.send(b'PONG %b\r\n' % data)
 
-    @_check_running
-    def _privmsg(self, channel, user, msg):
+    def _handle_target(self, channel, user, msg):
         try:
             return self.message_handler(self, user, channel, msg.strip())
         except Exception:
             log.exception('handler failure')
             pass
+
+    @_check_running
+    def _privmsg(self, channel, user, msg):
+        thread = threading.Thread(
+            target=self._handle_target,
+            args=(channel, user, msg),
+        )
+        thread.daemon = True
+        thread.start()
 
     @_check_running
     def _ignore(self, user, data):

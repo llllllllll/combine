@@ -12,6 +12,7 @@ from slider.client import ApprovedState
 
 from .logging import log, log_duration
 from .token import gen_token
+from .utils import LockedIterator
 
 
 class _command:
@@ -131,7 +132,7 @@ class CombineHandler(Handler):
         self.get_model = lru_cache(model_cache_size)(self._get_model)
         self._user_stats = {}
 
-        self._candidates = self._gen_candidates()
+        self._candidates = LockedIterator(self._gen_candidates())
 
     def _get_model(self, user):
         try:
@@ -245,7 +246,7 @@ class CombineHandler(Handler):
     def _log_duration(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            with log_duration(f'{f.__name__}'):
+            with log_duration(f'{f.__name__}', level='debug'):
                 return f(*args, **kwargs)
 
         return wrapper

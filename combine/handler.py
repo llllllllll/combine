@@ -199,7 +199,7 @@ class CombineHandler(Handler):
 
         try:
             accuracy = model.predict_beatmap(beatmap, *mod_masks)
-        except ValueError:
+        except Exception:
             return ()
 
         pp = (

@@ -2,8 +2,7 @@
 """
 from contextlib import contextmanager
 from datetime import datetime
-from functools import lru_cache, partial
-import operator as op
+from functools import lru_cache
 import sys
 from sys import _getframe
 from types import ModuleType
@@ -12,7 +11,7 @@ from humanize import naturaldelta
 from logbook import Logger, ERROR, NOTICE, DEBUG
 from logbook.more import ColorizedStderrHandler
 
-from .utils.apply import instance
+from .utils import instance
 
 
 class AlternateColorizedStderrHandler(ColorizedStderrHandler):
@@ -105,7 +104,6 @@ def _logger_for_frame(f):
     return _mem_logger(f.f_globals['__name__'])
 
 
-@partial(op.setitem, sys.__modules__, __name__)
 @instance
 class logging(ModuleType):
     def __init__(self):
@@ -117,4 +115,5 @@ class logging(ModuleType):
         return _logger_for_frame(_getframe(1))
 
 
+sys.modules[__name__] = logging
 log = logging.log

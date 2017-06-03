@@ -1,17 +1,16 @@
 import datetime
-from functools import lru_cache
+from functools import lru_cache, wraps
 from itertools import combinations, chain
-import json
 import pathlib
 import pickle
 import random
 
 from cryptography.fernet import Fernet
 import numpy as np
-import pandas as pd
 from slider import GameMode, Mod
 from slider.client import ApprovedState
 
+from .logging import log, log_duration
 from .token import gen_token
 
 
@@ -200,6 +199,10 @@ class CombineHandler(Handler):
         try:
             accuracy = model.predict_beatmap(beatmap, *mod_masks)
         except Exception:
+            log.exception(
+                'failed to predict beatmap {beatmap}',
+                beatmap=beatmap,
+            )
             return ()
 
         pp = (
@@ -239,7 +242,16 @@ class CombineHandler(Handler):
         " the command `!gen-token` and enter that along with your replays."
     )
 
+    def _log_duration(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            with log_duration(f'{f.__name__}'):
+                return f(*args, **kwargs)
+
+        return wrapper
+
     @command('!r', '!rec', '!recommend')
+    @_log_duration
     def recommend(self, client, user, msg):
         """Recommend a beatmap for the user.
         """

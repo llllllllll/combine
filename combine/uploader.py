@@ -170,7 +170,6 @@ def extract_from_form(files, client, age):
 
         if (replay.mode != GameMode.standard or
                 replay.autoplay or
-                replay.spun_out or
                 replay.auto_pilot or
                 replay.cinema or
                 replay.relax or

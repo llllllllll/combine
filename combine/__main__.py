@@ -1,7 +1,9 @@
 import click
+from logbook import lookup_level
 from straitlets.ext.click import YamlConfigFile
 
 from .config import Config
+from .logging import AlternateColorizedStderrHandler
 
 
 @click.group()
@@ -10,9 +12,18 @@ from .config import Config
     default='config.yml',
     type=YamlConfigFile(Config),
 )
+@click.option(
+    '--log-level',
+    default='info',
+    help='The minimum log level to show.',
+)
 @click.pass_context
-def main(ctx, config):
+def main(ctx, config, log_level):
     ctx.obj = config
+
+    AlternateColorizedStderrHandler(
+        level=lookup_level(log_level.upper()),
+    ).push_application()
 
 
 @main.command()

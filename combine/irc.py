@@ -2,6 +2,8 @@ from functools import wraps
 import socket
 import threading
 
+from .logging import log
+
 
 class Client:
     """An IRC client which sends messages to some handler object.
@@ -65,7 +67,11 @@ class Client:
 
     @_check_running
     def _privmsg(self, channel, user, msg):
-        return self.message_handler(self, user, channel, msg.strip())
+        try:
+            return self.message_handler(self, user, channel, msg.strip())
+        except Exception:
+            log.exception('handler failure')
+            pass
 
     @_check_running
     def _ignore(self, user, data):

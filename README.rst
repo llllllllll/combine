@@ -152,4 +152,4 @@ Replay Upload Server
 To serve the replay upload service, run ``python -m combine uploader``. This
 will run as a flask app behind gunicorn. If you would like to open this service
 up to the public (like http://combine.jevnik.moe), I would recommend running it
-behind nginx, a simple nginx config file is provided in ``etc/proxy``.
+behind nginx, a simple nginx config file is provided in ``nginx/config``.

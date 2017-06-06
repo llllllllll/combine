@@ -23,5 +23,9 @@ http {
             proxy_read_timeout 600;
             proxy_pass http://gunicorn;
         }
+
+        location /robots.txt {
+            return 200 "User-agent: *\nDisallow: /train\n";
+        }
     }
 }

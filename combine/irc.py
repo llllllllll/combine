@@ -51,6 +51,9 @@ class Client:
         thread.start()
 
     def _check_running(f):
+        """Decorator to check to see if the client is still running before
+        dispatching to the underlying function.
+        """
         @wraps(f)
         def dec(self, *args, **kwargs):
             if not self._running:
@@ -62,10 +65,28 @@ class Client:
 
     @_check_running
     def _pong(self, data):
+        """Handle a response for a ``ping``
+
+        Parameters
+        ----------
+        data : bytes
+            The data sent by the server in the ``ping``.
+        """
         with self._write_lock:
             self._socket.send(b'PONG %b\r\n' % data)
 
     def _handle_target(self, channel, user, msg):
+        """The target function for the handler thread.
+
+        Parameters
+        ----------
+        channel : str
+            The channel the message was sent over.
+        user : str
+            The user who sent the message.
+        msg : str
+            The message itself.
+        """
         try:
             return self.message_handler(self, user, channel, msg.strip())
         except Exception:
@@ -74,6 +95,17 @@ class Client:
 
     @_check_running
     def _privmsg(self, channel, user, msg):
+        """Handle a message.
+
+        Parameters
+        ----------
+        channel : str
+            The channel the message was sent over.
+        user : str
+            The user who sent the message.
+        msg : str
+            The message itself.
+        """
         thread = threading.Thread(
             target=self._handle_target,
             args=(channel, user, msg),
@@ -94,6 +126,12 @@ class Client:
             The user to send the message to.
         message : str
             The message to send.
+
+        Notes
+        -----
+        This function locks the write end of the socket; it is the only safe
+        way to send messages back to the server. Handlers should always go
+        through this method.
         """
         if '\n' in message:
             raise ValueError('cannot send messages with newlines')
@@ -129,9 +167,25 @@ class Client:
                 self._privmsg(channel, name.decode('utf-8'), msg)
 
     def stop(self):
+        """Stop the client. Any messages being processed will be finished
+        unless the main thread exits before they finish.
+        """
         self._running = False
 
+    def close(self):
+        """Close the connections required by this client.
+
+        Notes
+        -----
+        The client must be stopped first.
+        """
+        if self._running:
+            raise ValueError('cannot close an active client')
+        self._socket.close()
+
     def join(self):
+        """Block until the client is stopped.
+        """
         self._listen_thread.join()
 
     def run(self):
@@ -144,4 +198,4 @@ class Client:
     def __exit__(self, *exc_info):
         self.stop()
         self.join()
-        self._socket.close()
+        self.close()

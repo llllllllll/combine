@@ -14,7 +14,9 @@ class Config(StrictSerializable):
     api_key = Unicode(example='<api-key>')
     username = Unicode(example='<username>')
     password = Unicode(example='<password>')
+    github_url = Unicode(example='http://github.com/example-user/example-repo')
     upload_url = Unicode(example='http://localhost/')
+    email_address = Unicode(example='example@example.com')
 
     @Instance
     class irc(StrictSerializable):

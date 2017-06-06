@@ -1,4 +1,6 @@
 api_key: <api-key>
+email_address: example@example.com
+github_url: http://github.com/example-user/example-repo
 gunicorn:
   accesslog: '-'
   bind: localhost:5000
@@ -13,5 +15,5 @@ model_cache_size: 24
 models: data/models
 password: <password>
 token_secret_path: data/token-secret
+upload_url: http://localhost/
 username: <username>
-upload_url : http://localhost/

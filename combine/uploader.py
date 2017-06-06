@@ -1,3 +1,4 @@
+from collections import namedtuple
 import datetime
 import json
 import pathlib
@@ -16,11 +17,22 @@ api = flask.Blueprint('combine-uploader', __name__)
 _app_data = {}
 
 
+AppData = namedtuple(
+    'AppData',
+    'model_cache_dir token_secret client index_html',
+)
+
+
 def _register_api(app, options, first_registration=False):
-    _app_data[app] = (
+    _app_data[app] = AppData(
         options['model_cache_dir'],
         options['token_secret'],
         options['client'],
+        index_html_template.format(
+            github_url=options['github_url'],
+            email_address=options['email_address'],
+            bot_user=options['bot_user'],
+        ),
     )
 
     # Call the original register function.
@@ -30,17 +42,17 @@ def _register_api(app, options, first_registration=False):
 api.register = _register_api
 
 
-index_html = """
+index_html_template = """
 <!DOCTYPE html>
 <h1>
-  <a href="https://github.com/llllllllll/combine" target="_blank">
+  <a href={github_url} target="_blank">
     combine
   </a>
 </h1>
 
 <h2>
   If you want to make this page not look terrible please email me at
-  joejev@gmail.com!
+  {email_address}!
 <h2>
 
 <form action="/train" method="post" enctype=multipart/form-data>
@@ -66,7 +78,7 @@ index_html = """
 
     <div class="form-group">
       <label for=token>
-        secret token: get this by sending JoeJev "!gen-token" in osu!
+        secret token: get this by sending {bot_user} "!gen-token" in osu!
       </label>
       <input name="token" type=text required>
     </div>
@@ -81,12 +93,12 @@ index_html = """
 
 @api.route('/')
 def index():
-    return index_html
+    return _app_data[flask.current_app].index_html
 
 
 @api.route('/train', methods=['POST'])
 def train():
-    model_cache_dir, token_secret, client = _app_data[flask.current_app]
+    model_cache_dir, token_secret, client, _ = _app_data[flask.current_app]
     try:
         token = json.loads(token_secret.decrypt(
             flask.request.form['token'].encode('ascii'),
@@ -226,7 +238,13 @@ def train_from_form(files, client, age):
     return train_model(labels, acc)
 
 
-def build_app(model_cache_dir, token_secret, client, gunicorn_options):
+def build_app(model_cache_dir,
+              token_secret,
+              client,
+              bot_user,
+              github_url,
+              email_address,
+              gunicorn_options):
     """Build the app object.
 
     Parameters
@@ -237,8 +255,14 @@ def build_app(model_cache_dir, token_secret, client, gunicorn_options):
         The shared secret for the uploader and irc server.
     client : Library
         The client used to fetch beatmaps.
+    bot_user : str
+        The username of the bot.
+    github_url : str
+        The url of the repo on github.
+    email_address : str
+        The email address for support / comments.
     gunicorn_options : dict
-        Options to forward to gunicorn
+        Options to forward to gunicorn.
 
     Returns
     -------
@@ -251,6 +275,9 @@ def build_app(model_cache_dir, token_secret, client, gunicorn_options):
         model_cache_dir=pathlib.Path(model_cache_dir),
         token_secret=Fernet(token_secret),
         client=client,
+        bot_user=bot_user,
+        github_url=github_url,
+        email_address=email_address,
     )
 
     class app(BaseApplication):

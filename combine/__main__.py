@@ -114,6 +114,9 @@ def uploader(obj):
         model_cache_dir=obj.models,
         token_secret=obj.token_secret,
         client=Client(Library(obj.maps), obj.api_key),
+        bot_user=obj.username,
+        github_url=obj.github_url,
+        email_address=obj.email_address,
         gunicorn_options=obj.gunicorn.to_dict(),
     ).run()
 

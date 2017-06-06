@@ -282,7 +282,10 @@ class CombineHandler(Handler):
         # This keeps the suggestions reasonable.
         upper = user_max + (user_std / 2)
 
-        for candidate in self._candidates:
+        for n, candidate in enumerate(self._candidates):
+            if n > 50:
+                break
+
             beatmap = candidate.beatmap()
             predictions = self._predict(
                 model,

@@ -10,6 +10,7 @@ import numpy as np
 from slider import GameMode, Mod
 from slider.client import ApprovedState
 
+from .expiring_cache import ExpiringCache
 from .logging import log, log_duration
 from .token import gen_token
 from .utils import LockedIterator
@@ -116,6 +117,7 @@ class CombineHandler(Handler):
     """
     # the weights for the top 100 scores
     _pp_weights = 0.95 ** np.arange(100)
+    _user_stats_cache_lifetime = datetime.timedelta(hours=2)
 
     def __init__(self,
                  bot_user,
@@ -133,7 +135,7 @@ class CombineHandler(Handler):
         self.upload_url = upload_url
 
         self.get_model = lru_cache(model_cache_size)(self._get_model)
-        self._user_stats = {}
+        self._user_stats = ExpiringCache()
 
         self._candidates = LockedIterator(self._gen_candidates())
 
@@ -267,26 +269,27 @@ class CombineHandler(Handler):
             )
 
         try:
-            user_average, user_std, user_max = self._user_stats[user]
+            user_average, upper_bound = self._user_stats[user]
         except KeyError:
             pp = np.array([
                 hs.pp
                 for hs in self.osu_client.user_best(user_name=user, limit=100)
             ])
-            user_average, user_std, user_max = self._user_stats[user] = (
-                # Take a weighted average of the PP weighing by the
-                # contribution to ranked PP. Slice the weight vector in case
-                # the user has less than 100 high scores.
-                np.average(pp, weights=self._pp_weights[:len(pp)]),
-                pp.std(),
-                pp.max()
+            # Take a weighted average of the PP weighing by the contribution to
+            # ranked PP. Slice the weight vector in case the user has less than
+            # 100 high scores.
+            user_average = np.average(pp, weights=self._pp_weights[:len(pp)])
+            # The model isn't very accurate for really hard maps it hasn't seen
+            # This keeps the suggestions reasonable.
+            upper_bound = pp.max() + (pp.std() / 2)
+
+            # cache the PP lookup for a while
+            self._user_stats[user] = (
+                (user_average, upper_bound),
+                datetime.datetime.now() + self._user_stats_cache_lifetime,
             )
 
         with_mods, without_mods = self._parse_recommend_args(msg)
-
-        # The model isn't very accurate for really hard maps it hasn't seen
-        # This keeps the suggestions reasonable.
-        upper = user_max + (user_std / 2)
 
         for n, candidate in enumerate(self._candidates):
             if n > 50:
@@ -300,7 +303,7 @@ class CombineHandler(Handler):
                 without_mods,
             )
             for mask, accuracy, pp in predictions:
-                if user_average <= pp <= upper and accuracy > 0.95:
+                if user_average <= pp <= upper_bound and accuracy > 0.95:
                     if not any(mask.values()):
                         mods = ''
                     else:

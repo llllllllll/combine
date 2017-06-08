@@ -114,6 +114,9 @@ class CombineHandler(Handler):
     upload_url : str
         The url to upload replays.
     """
+    # the weights for the top 100 scores
+    _pp_weights = 0.95 ** np.arange(100)
+
     def __init__(self,
                  bot_user,
                  osu_client,
@@ -271,7 +274,10 @@ class CombineHandler(Handler):
                 for hs in self.osu_client.user_best(user_name=user, limit=100)
             ])
             user_average, user_std, user_max = self._user_stats[user] = (
-                pp.mean(),
+                # Take a weighted average of the PP weighing by the
+                # contribution to ranked PP. Slice the weight vector in case
+                # the user has less than 100 high scores.
+                np.average(pp, weights=self._pp_weights[:len(pp)]),
                 pp.std(),
                 pp.max()
             )

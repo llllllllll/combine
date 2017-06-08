@@ -5,7 +5,7 @@ from straitlets.py3 import Path
 
 
 class Config(StrictSerializable):
-    """The configuration needed to run the fundamentals process.
+    """The configuration needed to run the combine processes.
     """
     maps = Path(example='data/maps')
     models = Path(example='data/models')

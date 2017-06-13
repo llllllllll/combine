@@ -152,7 +152,7 @@ def train(obj, user, replays, age):
 
     m = train_from_replay_directory(
         replays,
-        Client(Library(obj.maps), obj.api_key),
+        client=Client(Library(obj.maps), obj.api_key),
         age=age,
     )
     with open(os.path.join(obj.models, user), 'wb') as f:

@@ -4,6 +4,7 @@ from itertools import combinations, chain
 import pathlib
 import pickle
 import random
+import re
 
 from cryptography.fernet import Fernet
 import numpy as np
@@ -136,6 +137,7 @@ class CombineHandler(Handler):
     # the weights for the top 100 scores
     _pp_weights = 0.95 ** np.arange(100)
     _user_stats_cache_lifetime = datetime.timedelta(hours=2)
+    _pp_curve_accuracies = np.array([0.95, 0.96, 0.97, 0.98, 0.99, 1.00])
 
     def __init__(self,
                  bot_user,
@@ -158,7 +160,7 @@ class CombineHandler(Handler):
         self._candidates = LockedIterator(self._gen_candidates())
 
     @staticmethod
-    def send(client, user, message):
+    def send(client, user, msg):
         """Send a message to the client.
 
         Parameters
@@ -167,7 +169,7 @@ class CombineHandler(Handler):
             The client to send a message to.
         user : User
             The user to send the message to.
-        message : str
+        msg : str
             The message to send.
 
         Notes
@@ -175,7 +177,7 @@ class CombineHandler(Handler):
         This is implemented as a method to allow subclasses to hook into
         how messages are sent.
         """
-        return client.send(user, message)
+        return client.send(user, msg)
 
     def _get_model(self, user):
         try:
@@ -294,6 +296,53 @@ class CombineHandler(Handler):
 
         return wrapper
 
+    def _format_beatmap_result(self,
+                               beatmap,
+                               mods,
+                               accuracy,
+                               pp,
+                               pp_curve):
+        """Format the results for a beatmap.
+
+        Parameters
+        ----------
+        beatmap : Beatmap
+            The beatmap this is the result for.
+        mods : str
+            The formatted mods.
+        accuracy : float
+            The predicted accuracy from [0, 100].
+        pp : float
+            The predicted PP.
+        pp_curve : np.ndarray[float]
+            The pp curve for 95-100%.
+
+        Returns
+        -------
+        formatted : str
+            The formatted message.
+        """
+        pp_curve = pp_curve
+        formatted_curve = (
+            f"95-100%: [{', '.join(f'{p:.2f}' for p in pp_curve)}]"
+        )
+
+        if accuracy is None:
+            accuracy = '<unknown>'
+        else:
+            accuracy = f'{accuracy * 100:.2f}%'
+        if pp is None:
+            pp = '<unknown>'
+        else:
+            pp = f'{pp:.2f}pp'
+
+        return (
+            f'{self._format_link(beatmap)}'
+            f' {mods} '
+            f' predicted: {accuracy} | {pp};'
+            f' actual: {formatted_curve}'
+        )
+
     @command('!r', '!rec', '!recommend')
     @_log_duration
     def recommend(self, client, user, msg):
@@ -352,9 +401,16 @@ class CombineHandler(Handler):
                     return self.send(
                         client,
                         user,
-                        f'{self._format_link(beatmap)} '
-                        f'{mods} '
-                        f'predicted: {accuracy * 100:.2f}% | {pp:.2f}pp'
+                        self._format_beatmap_result(
+                            beatmap,
+                            mods,
+                            accuracy,
+                            pp,
+                            beatmap.performance_points(
+                                accuracy=self._pp_curve_accuracies,
+                                **mask,
+                            )
+                        ),
                     )
 
         raise CommandFailure('not enough candidate beatmaps, try again later')
@@ -374,6 +430,48 @@ class CombineHandler(Handler):
             ' osu!/Chat directory and open the newest file.'
         )
 
+    _np_pattern = re.compile(r'is listening to \[https://osu.ppy.sh/b/(\d+)')
+
+    @command('\x01ACTION')
+    def np(self, client, user, msg):
+        match = self._np_pattern.match(msg)
+        if match is None:
+            return
+
+        beatmap = self.osu_client.beatmap(
+            beatmap_id=match.groups(1),
+        ).beatmap(save=True)
+
+        pp_curve = beatmap.performance_points(
+            accuracy=self._pp_curve_accuracies,
+        )
+
+        try:
+            model = self.get_model(user)
+        except KeyError:
+            self.send(
+                client,
+                user,
+                self._no_model_message.format(user=user, url=self.upload_url),
+            )
+            accuracy = None
+            pp = None
+        else:
+            accuracy = model.prediction_beatmap(beatmap)
+            pp = beatmap.performance_points(accuracy=accuracy)
+
+        self.send(
+            client,
+            user,
+            self._format_beatmap_result(
+                beatmap,
+                '',
+                accuracy,
+                pp,
+                pp_curve,
+            ),
+        )
+
 
 class ReplCombineHandler(CombineHandler):
     """A :class:`~combine.handler.CombineHandler` which only listens
@@ -382,6 +480,6 @@ class ReplCombineHandler(CombineHandler):
     def should_handle_message(self, user, channel):
         return user == channel == self.bot_user
 
-    def send(self, client, user, message):
-        print(message)
-        super().send(client, user, message)
+    def send(self, client, user, msg):
+        print(msg)
+        super().send(client, user, msg)

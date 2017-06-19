@@ -62,6 +62,9 @@ def setup_system():
 
     restart_nginx()
 
+    sudo('mkdir -p /var/run/watch-ip')
+    sudo('chmod 777 /var/run/watch-ip')
+
 
 def ensure_venv(name='venv'):
     sudo('mkdir -p /venvs')

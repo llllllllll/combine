@@ -13,6 +13,11 @@ def _get_ip():
     return r.text.strip()
 
 
+def _save_ip(ip_file, ip):
+    with open(ip_file, 'w') as f:
+        f.write(ip)
+
+
 @click.command()
 @click.option(
     '--username',
@@ -26,16 +31,42 @@ def _get_ip():
     help='The password for the email username.',
     required=True,
 )
-def main(username, password):
+@click.option(
+    '--ip-file',
+    envvar='WATCH_IP_FILE',
+    help='The file to store the current IP',
+    required=True,
+)
+def main(username, password, ip_file):
     s = smtplib.SMTP('smtp.gmail.com', 587)
     s.starttls()
     s.login(username, password)
 
-    ip = _get_ip
+    try:
+        with open(ip_file) as f:
+            ip = f.read()
+    except FileNotFoundError:
+        while True:
+            try:
+                ip = _get_ip()
+                break
+            except requests.HTTPError as e:
+                if e.response.status_code != 429:
+                    raise
+                sleep(60)
+
+        _save_ip(ip_file, ip)
 
     while True:
         sleep(120)  # every 2 minutes
-        new_ip = _get_ip()
+        try:
+            new_ip = _get_ip()
+        except requests.HTTPError as e:
+            if e.response.status_code != 429:
+                raise
+            # don't overload ifconfig.co's servers
+            continue
+
         if new_ip != ip:
             text = f'Combine server IP address changed to: {new_ip}'
             msg = MIMEText(text)
@@ -44,6 +75,7 @@ def main(username, password):
             msg['Subject'] = text
             s.send_message(msg)
             ip = new_ip
+            _save_ip(ip_file, ip)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,9 @@
 #!/bin/bash
+set -e
 
-source watch-ip.env
-source venvs/venv/bin/activate
-./watch-ip
+source etc/watch-ip.env
+source /venvs/venv/bin/activate
+
+WATCH_IP_USERNAME=$WATCH_IP_USERNAME \
+    WATCH_IP_PASSWORD=$WATCH_IP_PASSWORD \
+    ./etc/watch-ip

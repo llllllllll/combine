@@ -13,7 +13,7 @@ pidfile=/var/run/supervisord.pid
 
 [program:uploader]
 directory={cwd}
-command={cwd}/supervisor-uploader
+command={cwd}/etc/supervisor-uploader
 environment=LANG=en_US.UTF-8,LC_ALL=en_US.UTF-8
 autorestart=true
 user=combine

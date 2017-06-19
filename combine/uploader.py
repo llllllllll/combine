@@ -10,7 +10,10 @@ from gunicorn.app.base import BaseApplication
 import numpy as np
 import pandas as pd
 from slider import Replay, GameMode
+from slider.client import UnknownBeatmap
 from slider.model import extract_feature_array, train_model
+
+from .logging import log
 
 
 api = flask.Blueprint('combine-uploader', __name__)
@@ -100,17 +103,19 @@ def index():
 def train():
     model_cache_dir, token_secret, client, _ = _app_data[flask.current_app]
     try:
-        token = json.loads(token_secret.decrypt(
-            flask.request.form['token'].encode('ascii'),
-        ).decode('utf-8'))
-
-        if pd.Timestamp.now(tz='utc') > pd.Timestamp(token['expires']):
-            return 'expired token', 401
-
-        user = token['user']
+        enc_token = flask.request.form['token'].encode('ascii')
     except Exception as e:
-        return 'bad token', 401
+        return f'malformed or missing token: {type(e)}: {e}', 401
 
+    try:
+        token = json.loads(token_secret.decrypt(enc_token).decode('utf-8'))
+    except Exception:
+        return 'failed to decrypt token', 401
+
+    if pd.Timestamp.now(tz='utc') > pd.Timestamp(token['expires']):
+        return 'expired token', 401
+
+    user = token['user']
     age = flask.request.form.get('training-days', None)
     if age:
         try:
@@ -131,7 +136,8 @@ def train():
             age,
         )
     except Exception as e:
-        return str(e), 400
+        log.exception('failed to train')
+        return f'failed to train: {type(e)}: {e}', 400
 
     with open(model_cache_dir / user, 'wb') as f:
         pickle.dump(model, f)
@@ -174,7 +180,10 @@ def extract_from_form(files, client, age):
         if not entry.filename.endswith('.osr'):
             continue
 
-        replay = Replay.parse(entry.read(), client=client, save=True)
+        try:
+            replay = Replay.parse(entry.read(), client=client, save=True)
+        except UnknownBeatmap:
+            continue
 
         if (age is not None and
                 datetime.datetime.utcnow() - replay.timestamp > age):

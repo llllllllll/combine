@@ -30,26 +30,37 @@ def main(ctx, config, log_level):
 @main.command()
 @click.option(
     '--daemon/--no-daemon',
+    default=False,
     help='Run without the repl?',
 )
+@click.option(
+    '--repl-only/--no-repl-only',
+    default=False,
+    help='Run just the repl without listening to external user commands.',
+)
 @click.pass_obj
-def irc(obj, daemon):
+def irc(obj, daemon, repl_only):
     """Serve the irc bot an enter into a repl where you can send the bot user
     messages directly.
     """
     import readline  # noqa
+    import sys
     from textwrap import dedent
 
     from slider import Library, Client
 
     from . import irc
-    from .handler import CombineHandler
+    from .handler import CombineHandler, ReplCombineHandler
+
+    if daemon and repl_only:
+        print('cannot set --repl-only and --daemon', file=sys.stderr)
+        exit(-1)
 
     library = Library(obj.maps)
     osu_client = Client(library, obj.api_key)
 
     username = obj.username
-    handler = CombineHandler(
+    handler = (ReplCombineHandler if repl_only else CombineHandler)(
         username,
         osu_client,
         obj.models,
@@ -72,7 +83,7 @@ def irc(obj, daemon):
         return
 
     print(dedent(
-        """Running combine IRC server!
+        f"""Running combine IRC server!{' (REPL ONLY)' if repl_only else ''}
 
         Commands:
 

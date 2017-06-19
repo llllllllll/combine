@@ -65,8 +65,26 @@ class Handler:
                 for name in v.names:
                     cls._commands[name] = v.f
 
+    def should_handle_message(self, user, channel):
+        """A predicate for filtering out messages which can be overridden
+        by concrete handlers.
+
+        Parameters
+        ----------
+        user : str
+            The user who sent the message.
+        channel : str
+            The channel the message was sent on.
+
+        Returns
+        -------
+        should_handle_message : bool
+            Should the message be handled?
+        """
+        return channel in self._channels
+
     def __call__(self, client, user, channel, msg):
-        if channel not in self._channels:
+        if not self.should_handle_message(user, channel):
             return
 
         split = msg.split(' ', 1)
@@ -138,6 +156,26 @@ class CombineHandler(Handler):
         self._user_stats = ExpiringCache()
 
         self._candidates = LockedIterator(self._gen_candidates())
+
+    @staticmethod
+    def send(client, user, message):
+        """Send a message to the client.
+
+        Parameters
+        ----------
+        client : Client
+            The client to send a message to.
+        user : User
+            The user to send the message to.
+        message : str
+            The message to send.
+
+        Notes
+        -----
+        This is implemented as a method to allow subclasses to hook into
+        how messages are sent.
+        """
+        return client.send(user, message)
 
     def _get_model(self, user):
         try:
@@ -311,7 +349,8 @@ class CombineHandler(Handler):
                             self._mods[k] for k, v in mask.items() if v
                         ))
 
-                    return client.send(
+                    return self.send(
+                        client,
                         user,
                         f'{self._format_link(beatmap)} '
                         f'{mods} '
@@ -327,9 +366,22 @@ class CombineHandler(Handler):
         if msg:
             raise CommandFailure(f'gen-token takes no arguments, got: {msg!r}')
 
-        client.send(user, f'token: {gen_token(self.token_secret, user)}')
-        client.send(
+        self.send(client, user, f'token: {gen_token(self.token_secret, user)}')
+        self.send(
+            client,
             user,
             'To copy the token, type `/savelog` and then  navigate to your'
             ' osu!/Chat directory and open the newest file.'
         )
+
+
+class ReplCombineHandler(CombineHandler):
+    """A :class:`~combine.handler.CombineHandler` which only listens
+    to messages from the bot user and echos responses to the terminal.
+    """
+    def should_handle_message(self, user, channel):
+        return user == channel == self.bot_user
+
+    def send(self, client, user, message):
+        print(message)
+        super().send(client, user, message)

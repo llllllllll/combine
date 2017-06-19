@@ -182,7 +182,7 @@ def extract_from_form(files, client, age):
 
         try:
             replay = Replay.parse(entry.read(), client=client, save=True)
-        except UnknownBeatmap:
+        except Exception:
             continue
 
         if (age is not None and

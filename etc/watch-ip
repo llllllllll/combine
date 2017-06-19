@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+from email.mime.text import MIMEText
+import smtplib
+from time import sleep
+
+import click
+import requests
+
+
+def _get_ip():
+    r = requests.get('http://ifconfig.co/ip')
+    r.raise_for_status()
+    return r.text.strip()
+
+
+@click.command()
+@click.option(
+    '--username',
+    envvar='WATCH_IP_USERNAME',
+    help='The username to send emails from.',
+    required=True,
+)
+@click.option(
+    '--password',
+    envvar='WATCH_IP_PASSWORD',
+    help='The password for the email username.',
+    required=True,
+)
+def main(username, password):
+    s = smtplib.SMTP('smtp.gmail.com', 587)
+    s.starttls()
+    s.login(username, password)
+
+    ip = _get_ip
+
+    while True:
+        sleep(120)  # every 2 minutes
+        new_ip = _get_ip()
+        if new_ip != ip:
+            text = f'Combine server IP address changed to: {new_ip}'
+            msg = MIMEText(text)
+            msg['To'] = username
+            msg['From'] = username
+            msg['Subject'] = text
+            s.send_message(msg)
+            ip = new_ip
+
+
+if __name__ == '__main__':
+    main()

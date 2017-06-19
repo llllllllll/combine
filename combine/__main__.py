@@ -10,6 +10,7 @@ from .logging import AlternateColorizedStderrHandler
 @click.option(
     '--config',
     default='config.yml',
+    envvar='COMBINE_CONFIG_FILE',
     type=YamlConfigFile(Config),
 )
 @click.option(
@@ -27,8 +28,12 @@ def main(ctx, config, log_level):
 
 
 @main.command()
+@click.option(
+    '--daemon/--no-daemon',
+    help='Run without the repl?',
+)
 @click.pass_obj
-def irc(obj):
+def irc(obj, daemon):
     """Serve the irc bot an enter into a repl where you can send the bot user
     messages directly.
     """
@@ -61,6 +66,10 @@ def irc(obj):
         'osu',
         handler,
     )
+
+    if daemon:
+        c.run()
+        return
 
     print(dedent(
         """Running combine IRC server!

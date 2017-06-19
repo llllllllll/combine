@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source watch-ip.env
+source venvs/venv/bin/activate
+./watch-ip

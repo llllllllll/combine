@@ -147,10 +147,10 @@ class CombineHandler(Handler):
             raise KeyError(user)
 
     def _gen_candidates(self):
-        since = datetime.datetime.now() - datetime.timedelta(days=365)
         candidates = None
         while True:
             if not candidates:
+                since = datetime.datetime.now() - datetime.timedelta(days=365)
                 candidates = self.osu_client.beatmap(
                     limit=500,
                     game_mode=GameMode.standard,

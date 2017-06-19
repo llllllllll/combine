@@ -129,6 +129,16 @@ install -e .`` from the repo root.
      uploader   Serve the replay upload page.
 
 
+Fabric
+~~~~~~
+
+To make it easy to deploy, combine uses `fabric <http://www.fabfile.org/>`_ to
+set up instances. The fabfile will install all of the needed packages and launch
+the services under supervisord. The provided fabfile targets an Ubuntu 16.04 LTS
+install because that is an easy distro to set up; however, combine runs any any
+GNU+Linux system (it is even developed on an Arch Linux machine and then
+deployed to Ubuntu with fabric)!.
+
 IRC Bot
 ~~~~~~~
 

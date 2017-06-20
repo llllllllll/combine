@@ -22,8 +22,30 @@ from .logging import AlternateColorizedStderrHandler
 def main(ctx, config, log_level):
     ctx.obj = config
 
+    logging_email = config.logging_email
+    if logging_email is not None:
+        from logbook import MailHandler
+
+        MailHandler(
+            logging_email.from_address,
+            logging_email.to_address,
+            server_addr=(
+                logging_email.server_address,
+                logging_email.server_port,
+            ),
+            credentials=(
+                logging_email.from_address,
+                logging_email.password,
+            ),
+            level=lookup_level(logging_email.log_level.upper()),
+            secure=True,
+            subject='Combine Error!',
+            bubble=True,
+        ).push_application()
+
     AlternateColorizedStderrHandler(
         level=lookup_level(log_level.upper()),
+        bubble=True,
     ).push_application()
 
 

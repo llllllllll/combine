@@ -10,6 +10,7 @@ gunicorn:
 irc:
   port: 6667
   server: cho.ppy.sh
+logging_email: null
 maps: data/maps
 model_cache_size: 24
 models: data/models

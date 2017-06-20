@@ -1,6 +1,7 @@
+from functools import partial
 import pathlib
 
-from straitlets import StrictSerializable, Unicode, Instance, Integer
+from straitlets import StrictSerializable, Unicode, Instance, Integer, Enum
 from straitlets.py3 import Path
 
 
@@ -30,6 +31,19 @@ class Config(StrictSerializable):
         timeout = Integer(example=6000)
         accesslog = Path(example='-')
         error = Path(example='-')
+
+    @partial(Instance, default_value=None, allow_none=True, example=None)
+    class logging_email(StrictSerializable):
+        from_address = Unicode(example='example@example.com')
+        to_address = Unicode(example='example@example.com')
+        server_address = Unicode(example='smtp.gmail.com')
+        server_port = Integer(example=587)
+        password = Unicode(example='<password>')
+        log_level = Enum(
+            values=['debug', 'info' 'notice', 'warning', 'error', 'critical'],
+            example='error',
+            default='error',
+        )
 
     @property
     def token_secret(self):

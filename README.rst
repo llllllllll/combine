@@ -101,10 +101,19 @@ the Combine bot is industrial farm equipment for circles.
 Why are the recommendations bad?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-I am not smart enough to explain why the model makes the predictions it
-makes. If you would like to help improve the performance please contact me or
-open a PR to `slider <https://github.com/llllllllll/slider>`_ which is the repo
-where the actual model implementation lives.
+The predictions are highly dependent on the uploaded replays. If you never play
+with hard rock, the predictions for hard rock will be worse than the predictions
+for the mods that you do play with. You should inform ``!r`` of your mod
+preferences when asking for a recommendation. For example: I personally always
+play with hidden, and rarely play with hard rock, so I would ask for
+recommendations with ``!r HD -HR``. I have no strong preference for ``DT`` so I
+leave it optional.
+
+Other than biases in the input, I am not smart enough to explain why the model
+makes the predictions it makes. If you would like to help improve the
+performance please contact me or open a PR to `slider
+<https://github.com/llllllllll/slider>`_ which is the repo where the actual
+model implementation lives.
 
 Developer Usage
 ---------------

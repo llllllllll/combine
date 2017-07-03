@@ -21,7 +21,7 @@ class _Entry:
         self._expires = expires
 
     def __call__(self):
-        if datetime.now() >= self._expires:
+        if datetime.datetime.now() >= self._expires:
             raise _Expired()
         return self._value
 

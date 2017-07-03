@@ -218,9 +218,8 @@ class CombineHandler(Handler):
              The link to send back.
         """
         return (
-            f'[https://osu.ppy.sh/b/{beatmap.beatmap_id}'
-            f' {beatmap.artist} -'
-            f' {beatmap.title} [{beatmap.version}]]'
+            f'[https://osu.ppy.sh/b/{beatmap.beatmap_id}' +
+            beatmap.display_name
         )
 
     _mods = {
@@ -288,14 +287,6 @@ class CombineHandler(Handler):
         " the command `!gen-token` and enter that along with your replays."
     )
 
-    def _log_duration(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            with log_duration(f'{f.__name__}', level='debug'):
-                return f(*args, **kwargs)
-
-        return wrapper
-
     def _format_beatmap_result(self,
                                beatmap,
                                mods,
@@ -342,6 +333,14 @@ class CombineHandler(Handler):
             f' predicted: {accuracy} | {pp};'
             f' actual: {formatted_curve}'
         )
+
+    def _log_duration(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            with log_duration(f.__name__, level='debug'):
+                f(*args, **kwargs)
+
+        return wrapper
 
     @command('!r', '!rec', '!recommend')
     @_log_duration
@@ -398,6 +397,12 @@ class CombineHandler(Handler):
                             self._mods[k] for k, v in mask.items() if v
                         ))
 
+                    log.info(
+                        'recommending {user} {beatmap.display_name} {mods}',
+                        user=user,
+                        beatmap=beatmap,
+                        mods=mods,
+                    )
                     return self.send(
                         client,
                         user,

@@ -1,0 +1,7 @@
+#!/bin/bash -e
+
+if [ -n "$VENV" ];then
+   source $VENV/bin/activate
+fi
+
+COMBINE_CONFIG_FILE=$COMBINE_CONFIG_FILE python -m combine irc --daemon

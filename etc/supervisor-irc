@@ -1,5 +1,0 @@
-#!/bin/bash
-
-set -e
-source /venvs/venv/bin/activate
-python -m combine irc --daemon

@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set -e
-source /venvs/venv/bin/activate
-ulimit -n 8192
-python -m combine uploader

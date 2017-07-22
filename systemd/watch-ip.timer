@@ -1,0 +1,8 @@
+[Unit]
+Description=Run the check-ip script every 2 minutes.
+
+[Timer]
+OnUnitActiveSec=2m
+
+[Install]
+WantedBy=timers.target

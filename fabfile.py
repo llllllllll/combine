@@ -1,5 +1,9 @@
-from fabric.api import task, run, cd, settings, sudo, prefix, env
+from io import StringIO
+import os
+
+from fabric.api import task, run, cd, settings, sudo, prefix, env, put
 from fabric.contrib.project import rsync_project
+import jinja2
 
 
 def add_apt(*paths):
@@ -50,12 +54,12 @@ def setup_system():
         'python3.6-gdbm',
         'python3.6-venv',
         'nginx',
+        'nginx-core',
         'screen',
         'gcc',
         'libssl-dev',
-        'supervisor',
     )
-    ensure_venv()
+    ensure_venv('combine')
 
     sudo('mkdir -p /tmp/gunicorn_run')
     sudo('chmod 777 /tmp/gunicorn_run')
@@ -66,7 +70,7 @@ def setup_system():
     sudo('chmod 777 /var/run/watch-ip')
 
 
-def ensure_venv(name='venv'):
+def ensure_venv(name):
     sudo('mkdir -p /venvs')
     sudo('chmod 777 /venvs')
 
@@ -81,17 +85,8 @@ def command_with_venv(command, name='venv'):
     return 'source /venvs/%s/bin/activate && %s' % (name, command)
 
 
-def venv(name='venv'):
+def venv(name):
     return prefix('source /venvs/%s/bin/activate' % name)
-
-
-def run_screen(command, name=None):
-    cmd = 'screen'
-    if name is not None:
-        cmd += ' -S %s' % name
-    cmd += ' -d -m %r' % command
-
-    run(cmd, pty=False)
 
 
 @task
@@ -113,6 +108,41 @@ def supervisorctl(command):
     )
 
 
+def put_systemd_services():
+    environment = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(os.path.abspath('systemd')),
+    )
+    services = (
+        'combine-uploader.service.template',
+        'combine-irc.service.template',
+        'watch-ip.service.template',
+    )
+    template_variables = {
+        'VENV': '/venvs/combine',
+        'COMBINE_CONFIG_FILE': '/home/%s/combine/config.yml' % env.user,
+        'IP_FILE': '/var/run/watch-ip/ip',
+    }
+    for name in services:
+        result = environment.get_template(name).render(template_variables)
+        put(
+            StringIO(result),
+            '/etc/systemd/system/%s' % name[:-len('.template')],
+            use_sudo=True,
+        )
+
+    put(
+        'systemd/watch-ip.timer',
+        '/etc/systemd/system/watch-ip.timer',
+        use_sudo=True,
+    )
+
+    sudo('systemctl daemon-reload')
+
+
+def systemctl_start(service):
+    sudo('systemctl restart %s' % service)
+
+
 @task
 def update():
     rsync_project(
@@ -125,15 +155,19 @@ def update():
         ),
     )
 
-    with cd('combine'), venv('venv'):
+    with cd('combine'), venv('combine'):
         run('mv config.yml{.prd,}')
 
         run('pip install -r etc/requirements.txt')
         run('pip install -e .')
 
-        run(
-            'sed "s|{cwd}|`pwd`|g" etc/supervisord.conf.template'
-            ' > etc/supervisord.conf',
-        )
-        supervisorctl('shutdown')
-        sudo('supervisord -c etc/supervisord.conf')
+        put_systemd_services()
+
+        systemctl_start('combine-uploader')
+        systemctl_start('combine-irc')
+
+        systemctl_start('watch-ip.timer')
+        systemctl_start('watch-ip.service')
+
+        run('systemctl is-active combine-uploader')
+        run('systemctl is-active combine-irc')

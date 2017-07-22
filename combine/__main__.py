@@ -201,5 +201,16 @@ def train(obj, user, replays, age):
         pickle.dump(m, f)
 
 
+@main.command(name='check-ip')
+@click.argument('ip-file')
+@click.pass_obj
+def check_ip(obj, ip_file):
+    """Check the current ip address against the saved value ip-file.
+    """
+    from combine.check_ip import main
+
+    main(obj, ip_file)
+
+
 if __name__ == '__main__':
     main()

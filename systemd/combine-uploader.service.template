@@ -1,0 +1,17 @@
+[Unit]
+Description=Combine uploader
+After=network.target
+
+[Service]
+ExecStart=/home/combine/combine/bin/uploader
+Restart=always
+RestartSec=5
+User=combine
+TimeoutStopSec=20
+Environment="COMBINE_CONFIG_FILE={{ COMBINE_CONFIG_FILE }}" "VENV={{ VENV }}"
+KillMode=process
+KillSignal=QUIT
+LimitNOFile=8192
+
+[Install]
+WantedBy=multi-user.target

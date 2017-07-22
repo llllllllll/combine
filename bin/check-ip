@@ -1,0 +1,7 @@
+#!/bin/bash -e
+
+if [ -n "$VENV" ];then
+   source $VENV/bin/activate
+fi
+
+python -m combine check-ip $IP_FILE

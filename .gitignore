@@ -10,4 +10,5 @@ data/*
 config.yml
 config.yml.prd
 
-etc/watch-ip.env
+# from check-ip
+.ip

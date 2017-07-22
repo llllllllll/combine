@@ -1,0 +1,12 @@
+[Unit]
+Description=IP monitoring script
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/combine/combine/bin/check-ip
+User=combine
+Environment="COMBINE_CONFIG_FILE={{ COMBINE_CONFIG_FILE }}" "VENV={{ VENV }}" "IP_FILE={{ IP_FILE }}"
+
+[Install]
+WantedBy=multi-user.target

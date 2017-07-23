@@ -143,6 +143,13 @@ def systemctl_start(service):
     sudo('systemctl restart %s' % service)
 
 
+def mkdir(path):
+    sudo('mkdir -p {path!r} && chown {user} {path!r}'.format(
+        path=path,
+        user=env.user,
+    ))
+
+
 @task
 def update():
     rsync_project(
@@ -163,11 +170,15 @@ def update():
 
         put_systemd_services()
 
+        mkdir('/var/run/gunicorn')
         systemctl_start('combine-uploader')
         systemctl_start('combine-irc')
 
+        mkdir('/var/run/watch-ip')
         systemctl_start('watch-ip.timer')
         systemctl_start('watch-ip.service')
 
         run('systemctl is-active combine-uploader')
         run('systemctl is-active combine-irc')
+
+    restart_nginx()

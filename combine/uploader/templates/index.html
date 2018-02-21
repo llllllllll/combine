@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>combine</title>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<h1>
+  <a href={{ github_url }} target="_blank">
+    combine
+  </a>
+</h1>
+
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+
+<h2>
+  If you want to make this page look better, please email me at
+  {{ email_address }}.
+</h2>
+
+<form action="/train" method="post" enctype=multipart/form-data>
+  <fieldset>
+    <legend>
+      upload your replays
+
+    <div class="form-group">
+      <label for="replays">
+        .osr files
+      </label>
+      <input name=replays type=file multiple required>
+    </div>
+
+    <div class="form-group">
+      <label for="training-days">
+        training period in days
+      </label>
+      <input name="training-days" type=number value=182 min=0 required>
+    </div>
+
+    <div class="form-group">
+      <label for="token">
+        secret token: get this by sending {{ bot_user }} "!gen-token" in osu!
+      </label>
+      <input name="token" type=text required>
+    </div>
+
+    <div class="form-group">
+      <input value="submit" type=submit>
+    </div>
+  </fieldset>
+</form>

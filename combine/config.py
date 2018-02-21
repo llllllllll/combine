@@ -1,8 +1,11 @@
 from functools import partial
 import pathlib
 
+import slider as sl
 from straitlets import StrictSerializable, Unicode, Instance, Integer, Enum
 from straitlets.py3 import Path
+
+from .train import TrainQueue
 
 
 class Config(StrictSerializable):
@@ -10,6 +13,9 @@ class Config(StrictSerializable):
     """
     maps = Path(example='data/maps')
     models = Path(example='data/models')
+    replays = Path(example='data/replays')
+    train_queue_db = Path(example='data/train-queue.db')
+
     model_cache_size = Integer(example=24)
     token_secret_path = Path(example='data/token-secret')
     api_key = Unicode(example='<api-key>')
@@ -49,6 +55,14 @@ class Config(StrictSerializable):
     def token_secret(self):
         with open(self.token_secret_path, 'rb') as f:
             return f.read()
+
+    @property
+    def train_queue(self):
+        return TrainQueue(self.train_queue_db)
+
+    @property
+    def client(self):
+        return sl.Client(sl.Library(self.maps), self.api_key)
 
 
 # the absolute path to the template file

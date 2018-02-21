@@ -1,3 +1,6 @@
 [submodule "submodules/slider"]
 	path = submodules/slider
 	url = http://github.com/llllllllll/slider
+[submodule "submodules/lain"]
+	path = submodules/lain
+	url = git@github.com:llllllllll/lain

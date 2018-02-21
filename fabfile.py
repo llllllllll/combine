@@ -115,6 +115,7 @@ def put_systemd_services():
     services = (
         'combine-uploader.service.template',
         'combine-irc.service.template',
+        'combine-train.service.template',
         'watch-ip.service.template',
     )
     template_variables = {

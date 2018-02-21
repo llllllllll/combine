@@ -50,6 +50,9 @@ class Client:
         thread.daemon = True
         thread.start()
 
+        for periodic_task in message_handler._periodic_tasks:
+            periodic_task.run(message_handler, self)
+
     def _check_running(f):
         """Decorator to check to see if the client is still running before
         dispatching to the underlying function.

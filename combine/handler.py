@@ -2,11 +2,12 @@ import datetime
 from functools import lru_cache, wraps
 from itertools import combinations, chain
 import pathlib
-import pickle
 import random
 import re
+import threading
 
 from cryptography.fernet import Fernet
+from lain import LSTM
 import numpy as np
 from slider import GameMode, Mod
 from slider.client import ApprovedState
@@ -37,6 +38,36 @@ def command(*names):
     return dec
 
 
+class _periodic_task:
+    def __init__(self, time, function):
+        self._time = time.total_seconds()
+        self._function = function
+
+    def run(self, *args, **kwargs):
+        def f(*args, **kwargs):
+            self._function(*args, **kwargs)
+            t = threading.Timer(self._time, self._function, args, kwargs)
+            t.start()
+
+        t = threading.Timer(self._time, self._function, args, kwargs)
+        t.start()
+
+
+def periodic_task(time):
+    """A periodic task is scheduled by the client to be run about every n
+    periods.
+
+    Parameters
+    ----------
+    time : datetime.timedelta
+        The delay between calls.
+    """
+    def dec(f):
+        return _periodic_task(time, f)
+
+    return dec
+
+
 class CommandFailure(Exception):
     """Exception raised to indicate that a command failed.
     """
@@ -58,13 +89,37 @@ class Handler:
         self._channels = frozenset(channels)
 
     _commands = {}
+    _periodic_tasks = []
 
     def __init_subclass__(cls):
         cls._commands = super(cls, cls)._commands.copy()
+        cls._periodic_tasks = super(cls, cls)._periodic_tasks.copy()
         for k, v in vars(cls).items():
             if isinstance(v, _command):
                 for name in v.names:
                     cls._commands[name] = v.f
+            elif isinstance(v, _periodic_task):
+                cls._periodic_tasks.append(v)
+
+    @staticmethod
+    def send(client, user, msg):
+        """Send a message to the client.
+
+        Parameters
+        ----------
+        client : Client
+            The client to send a message to.
+        user : User
+            The user to send the message to.
+        msg : str
+            The message to send.
+
+        Notes
+        -----
+        This is implemented as a method to allow subclasses to hook into
+        how messages are sent.
+        """
+        return client.send(user, msg)
 
     def should_handle_message(self, user, channel):
         """A predicate for filtering out messages which can be overridden
@@ -106,7 +161,7 @@ class Handler:
         try:
             f(self, client, user, data)
         except CommandFailure as e:
-            client.send(user, f'Error: {e}')
+            self.send(client, user, f'Error: {e}')
 
 
 def powerset(values):
@@ -133,6 +188,8 @@ class CombineHandler(Handler):
         The secret key for generating tokens.
     upload_url : str
         The url to upload replays.
+    train_queue : TrainQueue
+        The queue to read training results out of.
     """
     # the weights for the top 100 scores
     _pp_weights = 0.95 ** np.arange(100)
@@ -145,7 +202,8 @@ class CombineHandler(Handler):
                  model_cache_dir,
                  model_cache_size,
                  token_secret,
-                 upload_url):
+                 upload_url,
+                 train_queue):
         super().__init__({bot_user})
 
         self.bot_user = bot_user
@@ -153,36 +211,28 @@ class CombineHandler(Handler):
         self.model_cache_dir = pathlib.Path(model_cache_dir)
         self.token_secret = Fernet(token_secret)
         self.upload_url = upload_url
+        self.train_queue = train_queue
 
         self.get_model = lru_cache(model_cache_size)(self._get_model)
         self._user_stats = ExpiringCache()
 
         self._candidates = LockedIterator(self._gen_candidates())
 
-    @staticmethod
-    def send(client, user, msg):
-        """Send a message to the client.
-
-        Parameters
-        ----------
-        client : Client
-            The client to send a message to.
-        user : User
-            The user to send the message to.
-        msg : str
-            The message to send.
-
-        Notes
-        -----
-        This is implemented as a method to allow subclasses to hook into
-        how messages are sent.
+    @periodic_task(datetime.timedelta(seconds=30))
+    def report_training_status(self, client):
+        """Every 30 seconds, check the database to see if we have any new
+        results to report and send them to users.
         """
-        return client.send(user, msg)
+        for user, status in self.train_queue.copy().get_completed_jobs():
+            self.send(
+                client,
+                user,
+                f'model training complete: {status.value}',
+            )
 
     def _get_model(self, user):
         try:
-            with open(self.model_cache_dir / user, 'rb') as f:
-                return pickle.load(f)
+            return LSTM.load_path(self.model_cache_dir / user)
         except FileNotFoundError:
             raise KeyError(user)
 

@@ -69,8 +69,6 @@ def irc(obj, daemon, repl_only):
     import sys
     from textwrap import dedent
 
-    from slider import Library, Client
-
     from . import irc
     from .handler import CombineHandler, ReplCombineHandler
 
@@ -78,8 +76,7 @@ def irc(obj, daemon, repl_only):
         print('cannot set --repl-only and --daemon', file=sys.stderr)
         exit(-1)
 
-    library = Library(obj.maps)
-    osu_client = Client(library, obj.api_key)
+    osu_client = obj.client
 
     username = obj.username
     handler = (ReplCombineHandler if repl_only else CombineHandler)(
@@ -89,6 +86,7 @@ def irc(obj, daemon, repl_only):
         obj.model_cache_size,
         obj.token_secret,
         obj.upload_url,
+        obj.train_queue,
     )
 
     c = irc.Client(
@@ -148,22 +146,37 @@ def gen_token(obj, user):
 def uploader(obj):
     """Serve the replay upload page.
     """
-    from slider import Library, Client
-
     from .uploader import build_app
 
     build_app(
         model_cache_dir=obj.models,
+        replay_cache_dir=obj.replays,
         token_secret=obj.token_secret,
-        client=Client(Library(obj.maps), obj.api_key),
+        client=obj.client,
         bot_user=obj.username,
         github_url=obj.github_url,
         email_address=obj.email_address,
         gunicorn_options=obj.gunicorn.to_dict(),
+        train_queue=obj.train_queue,
     ).run()
 
 
 @main.command()
+@click.pass_obj
+def train(obj):
+    """Run the model training service.
+    """
+    from .train import run_train_queue
+
+    run_train_queue(
+        train_queue=obj.train_queue,
+        replay_cache_dir=obj.replays,
+        model_cache_dir=obj.models,
+        client=obj.client,
+    )
+
+
+@main.command('train-single')
 @click.option(
     '--user',
     required=True,
@@ -179,14 +192,13 @@ def uploader(obj):
     help='The age of replays to consider when training.',
 )
 @click.pass_obj
-def train(obj, user, replays, age):
+def train_single(obj, user, replays, age):
     """Manually train the model for a given user.
     """
     import os
     import pickle
 
     import pandas as pd
-    from slider import Library, Client
     from slider.model import train_from_replay_directory
 
     if age is not None:
@@ -194,7 +206,7 @@ def train(obj, user, replays, age):
 
     m = train_from_replay_directory(
         replays,
-        client=Client(Library(obj.maps), obj.api_key),
+        client=obj.client,
         age=age,
     )
     with open(os.path.join(obj.models, user), 'wb') as f:

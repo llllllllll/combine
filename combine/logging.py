@@ -104,7 +104,7 @@ def _logger_for_frame(f):
     return _mem_logger(f.f_globals['__name__'])
 
 
-@instance
+@type.__call__
 class logging(ModuleType):
     def __init__(self):
         super().__init__(type(self).__name__, '')

@@ -125,17 +125,20 @@ install -e .`` from the repo root.
 
 .. code-block::
 
-   Usage: combine [OPTIONS] COMMAND [ARGS]...
+   Usage: __main__.py [OPTIONS] COMMAND [ARGS]...
 
    Options:
      --config YAML-FILE
+     --log-level TEXT    The minimum log level to show.
      --help              Show this message and exit.
 
    Commands:
-     gen-token  Generate a token for a user.
-     irc        Serve the irc bot an enter into a repl where...
-     train      Manually train the model for a given user.
-     uploader   Serve the replay upload page.
+     check-ip      Check the current ip address against the...
+     gen-token     Generate a token for a user.
+     irc           Serve the irc bot an enter into a repl where...
+     train         Run the model training service.
+     train-single  Manually train the model for a given user.
+     uploader      Serve the replay upload page.
 
 
 Fabric
@@ -160,7 +163,7 @@ Training Locally
 ~~~~~~~~~~~~~~~~
 
 To train a model for yourself locally, you can use ``python -m combine
-train --user <user> --replays <replay-dir> --age <replay-age>``. This will train
+train-single --user <user> --replays <replay-dir> --age <replay-age>``. This will train
 the neural network against your <age> most recent replays. If age is not
 provided, all replays will be used. I have found using the last 6 months (182
 days) to be pretty good.
@@ -172,3 +175,12 @@ To serve the replay upload service, run ``python -m combine uploader``. This
 will run as a flask app behind gunicorn. If you would like to open this service
 up to the public (like http://combine.jevnik.moe), I would recommend running it
 behind nginx, a simple nginx config file is provided in ``etc/nginx.conf``.
+
+Model Training Service
+~~~~~~~~~~~~~~~~~~~~~~
+
+The replay upload server just saves the replays and enqueues a job in the
+training queue. The model training service reads from the training queue and
+trains a single model at a time. To run this service, run ``python -m combine
+train``. This depends on a shared sqlite database with the replay upload server,
+but they may be run independent from each other.

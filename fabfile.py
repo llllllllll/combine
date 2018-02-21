@@ -92,7 +92,8 @@ def venv(name):
 @task
 def rebuild_library():
     update()
-    run('python -m slider library --beatmaps data/maps')
+    with venv('combine'):
+        run('LC_LANG=C.UTF-8 LANG=C.UTF-8 python -m slider library /data/maps')
 
 
 def supervisorctl(command):
@@ -164,16 +165,23 @@ def update():
     )
 
     with cd('combine'), venv('combine'):
-        run('mv config.yml{.prd,}')
-
         run('pip install -r etc/requirements.txt')
         run('pip install -e .')
+
+
+@task
+def deploy():
+    update()
+
+    with cd('combine'), venv('combine'):
+        run('mv config.yml{.prd,}')
 
         put_systemd_services()
 
         mkdir('/var/run/gunicorn')
         systemctl_start('combine-uploader')
         systemctl_start('combine-irc')
+        systemctl_start('combine-train')
 
         mkdir('/var/run/watch-ip')
         systemctl_start('watch-ip.timer')
@@ -181,5 +189,6 @@ def update():
 
         run('systemctl is-active combine-uploader')
         run('systemctl is-active combine-irc')
+        run('systemctl is-active combine-train')
 
     restart_nginx()

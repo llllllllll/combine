@@ -111,9 +111,9 @@ leave it optional.
 
 Other than biases in the input, I am not smart enough to explain why the model
 makes the predictions it makes. If you would like to help improve the
-performance please contact me or open a PR to `slider
-<https://github.com/llllllllll/slider>`_ which is the repo where the actual
-model implementation lives.
+performance please contact me or open a PR to `lain
+<https://github.com/llllllllll/lain>`_ which is the repo where the actual model
+implementation lives.
 
 Developer Usage
 ---------------

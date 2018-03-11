@@ -44,13 +44,16 @@ class _periodic_task:
         self._function = function
 
     def run(self, *args, **kwargs):
-        def f(*args, **kwargs):
-            self._function(*args, **kwargs)
-            t = threading.Timer(self._time, self._function, args, kwargs)
-            t.start()
+        underlying_function = self._function
 
-        t = threading.Timer(self._time, self._function, args, kwargs)
-        t.start()
+        def wrapped_function(*args, **kwargs):
+            underlying_function(*args, **kwargs)
+            start()
+
+        def start():
+            threading.Timer(self._time, wrapped_function, args, kwargs).start()
+
+        start()
 
 
 def periodic_task(time):

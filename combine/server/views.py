@@ -93,7 +93,7 @@ def train():
         age = None
 
     user_replays = flask.g.replay_cache_dir / user
-    user_replays.mkdir(exist_okay=True)
+    user_replays.mkdir(exist_ok=True)
     for file in flask.request.files.getlist('replays'):
         filename = secure_filename(file.filename)
         file.save(os.fspath(user_replays / filename))

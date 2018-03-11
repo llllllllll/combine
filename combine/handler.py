@@ -207,7 +207,7 @@ class CombineHandler(Handler):
         super().__init__({bot_user})
 
         self.bot_user = bot_user
-        self.osu_client = osu_client
+        self._root_osu_client = osu_client
         self.model_cache_dir = pathlib.Path(model_cache_dir)
         self.token_secret = Fernet(token_secret)
         self.upload_url = upload_url
@@ -217,6 +217,19 @@ class CombineHandler(Handler):
         self._user_stats = ExpiringCache()
 
         self._candidates = LockedIterator(self._gen_candidates())
+
+        self._tls = threading.local()
+
+    @property
+    def osu_client(self):
+        """A thread-local :class:`slider.Client`.
+        """
+        try:
+            osu_client = self._tls.osu_client
+        except AttributeError:
+            osu_client = self._tls.osu_client = self._root_osu_client.copy()
+
+        return osu_client
 
     @periodic_task(datetime.timedelta(seconds=30))
     def report_training_status(self, client):
@@ -268,8 +281,8 @@ class CombineHandler(Handler):
              The link to send back.
         """
         return (
-            f'[https://osu.ppy.sh/b/{beatmap.beatmap_id}' +
-            beatmap.display_name
+            f'[https://osu.ppy.sh/b/{beatmap.beatmap_id}'
+            f' {beatmap.display_name}]'
         )
 
     _mods = {
@@ -381,7 +394,7 @@ class CombineHandler(Handler):
             f'{self._format_link(beatmap)}'
             f' {mods} '
             f' predicted: {accuracy} | {pp};'
-            f' actual: {formatted_curve}'
+            f' actual: {formatted_curve}pp'
         )
 
     def _log_duration(f):
@@ -485,7 +498,9 @@ class CombineHandler(Handler):
             ' osu!/Chat directory and open the newest file.'
         )
 
-    _np_pattern = re.compile(r'is listening to \[https://osu.ppy.sh/b/(\d+)')
+    _np_pattern = re.compile(
+        r'is listening to \[https://osu.ppy.sh/b/(\d+)',
+    )
 
     @command('\x01ACTION')
     def np(self, client, user, msg):
@@ -512,7 +527,7 @@ class CombineHandler(Handler):
             accuracy = None
             pp = None
         else:
-            accuracy = model.prediction_beatmap(beatmap)
+            accuracy = model.predict_beatmap(beatmap).item()
             pp = beatmap.performance_points(accuracy=accuracy)
 
         self.send(

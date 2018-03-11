@@ -109,6 +109,7 @@ def irc(obj, daemon, repl_only):
 
           !r[ec[ommend]] : send yourself a recommendation
           !gen-token     : generate an upload token for yourself
+          /np BEATMAP-ID : simulate an /np call when listening to BEATMAP-ID
         """,
     ))
     with c:
@@ -119,8 +120,17 @@ def irc(obj, daemon, repl_only):
                 print()
                 break
 
-            if command:
-                handler(c, username, username, command)
+            if not command:
+                continue
+
+            split = command.split(' ', 1)
+            if split[0] == '/np':
+                command = (
+                    f'\x01ACTION is listening to'
+                    f' [https://osu.ppy.sh/b/{split[1]}]'
+                )
+
+            handler(c, username, username, command)
 
 
 @main.command('gen-token')
@@ -143,12 +153,13 @@ def gen_token(obj, user):
 
 @main.command()
 @click.pass_obj
-def uploader(obj):
-    """Serve the replay upload page.
+def server(obj):
+    """Serve the replay upload page and combine web API.
     """
-    from .uploader import build_app
+    from .server import build_app
 
     build_app(
+        model_cache_size=obj.model_cache_size,
         model_cache_dir=obj.models,
         replay_cache_dir=obj.replays,
         token_secret=obj.token_secret,
@@ -164,7 +175,7 @@ def uploader(obj):
 @main.command()
 @click.pass_obj
 def train(obj):
-    """Run the model training service.
+    """Run the model training service with consumes tasks put 
     """
     from .train import run_train_queue
 

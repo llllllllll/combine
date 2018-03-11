@@ -41,6 +41,22 @@ Note: the second recommendation specified ``HD`` so we ensured that we suggested
 a map with ``HD``; however, it also has ``DT`` because we did explicit block
 it. The suggestion could not have ``HR`` because we specified ``-HR``.
 
+``/np``
+~~~~~~~
+
+See predictions and statistics for the song you are currently listening to.
+
+NOTE: ``/np`` does not include mods at the song select screen.
+
+Example
+```````
+
+.. code-block::
+
+   > /np
+   04:20 *JoeJev is listening to *namarin - Koi no Hime Hime Pettanko
+   04:20 JoeJev: *namarin - Koi no Hime Hime Pettanko  predicted 99.64% | 274.73pp; actual: 95-100%: [193.47, 201.51, 213.74, 230.00, 254.85, 287.78]pp
+
 ``!gen-token``
 ~~~~~~~~~~~~~~
 
@@ -136,10 +152,9 @@ install -e .`` from the repo root.
      check-ip      Check the current ip address against the...
      gen-token     Generate a token for a user.
      irc           Serve the irc bot an enter into a repl where...
+     server        Serve the replay upload page and combine web...
      train         Run the model training service.
-     train-single  Manually train the model for a given user.
-     uploader      Serve the replay upload page.
-
+     train-single  Manually train the model for a given user
 
 Fabric
 ~~~~~~
@@ -168,13 +183,14 @@ the neural network against your <age> most recent replays. If age is not
 provided, all replays will be used. I have found using the last 6 months (182
 days) to be pretty good.
 
-Replay Upload Server
-~~~~~~~~~~~~~~~~~~~~
+Web Server
+~~~~~~~~~~
 
-To serve the replay upload service, run ``python -m combine uploader``. This
-will run as a flask app behind gunicorn. If you would like to open this service
-up to the public (like http://combine.jevnik.moe), I would recommend running it
-behind nginx, a simple nginx config file is provided in ``etc/nginx.conf``.
+To serve the replay upload service and web API, run ``python -m combine
+server``. This will run as a flask app behind gunicorn. If you would like to
+open this service up to the public (like http://combine.jevnik.moe), I would
+recommend running it behind nginx, a simple nginx config file is provided in
+``etc/nginx.conf``.
 
 Model Training Service
 ~~~~~~~~~~~~~~~~~~~~~~

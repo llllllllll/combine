@@ -1,13 +1,16 @@
+from functools import lru_cache
 import pathlib
 
 from cryptography.fernet import Fernet
 import flask
 from gunicorn.app.base import BaseApplication
+from lain import LSTM
 
 from .views import api
 
 
 def build_app(*,
+              model_cache_size,
               model_cache_dir,
               replay_cache_dir,
               token_secret,
@@ -21,13 +24,15 @@ def build_app(*,
 
     Parameters
     ----------
+    model_cache_size : int
+        The number of models to hold in memory.
     model_cache_dir : path-like
         The path to the model directory.
     replay_cache_dir : path-like
         The path to the replay directory.
     token_secret : bytes
         The shared secret for the uploader and irc server.
-    client : Library
+    client : Client
         The client used to fetch beatmaps.
     bot_user : str
         The username of the bot.
@@ -53,6 +58,13 @@ def build_app(*,
     replay_cache_dir = pathlib.Path(replay_cache_dir)
     token_secret = Fernet(token_secret)
 
+    @lru_cache(model_cache_size)
+    def get_model(user):
+        try:
+            return LSTM.load_path(model_cache_dir / user)
+        except FileNotFoundError:
+            raise KeyError(user)
+
     @inner_app.before_request
     def setup_globals():
         flask.g.model_cache_dir = model_cache_dir
@@ -63,6 +75,7 @@ def build_app(*,
         flask.g.github_url = github_url
         flask.g.email_address = email_address
         flask.g.train_queue = train_queue
+        flask.g.get_model = get_model
 
     class app(BaseApplication):
         def load(self):

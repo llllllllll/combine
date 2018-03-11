@@ -114,7 +114,7 @@ def put_systemd_services():
         loader=jinja2.FileSystemLoader(os.path.abspath('systemd')),
     )
     services = (
-        'combine-uploader.service.template',
+        'combine-server.service.template',
         'combine-irc.service.template',
         'combine-train.service.template',
         'watch-ip.service.template',
@@ -179,7 +179,7 @@ def deploy():
         put_systemd_services()
 
         mkdir('/var/run/gunicorn')
-        systemctl_start('combine-uploader')
+        systemctl_start('combine-server')
         systemctl_start('combine-irc')
         systemctl_start('combine-train')
 
@@ -187,7 +187,7 @@ def deploy():
         systemctl_start('watch-ip.timer')
         systemctl_start('watch-ip.service')
 
-        run('systemctl is-active combine-uploader')
+        run('systemctl is-active combine-server')
         run('systemctl is-active combine-irc')
         run('systemctl is-active combine-train')
 

@@ -3,7 +3,7 @@ Description=Combine uploader
 After=network.target
 
 [Service]
-ExecStart=/home/combine/combine/bin/uploader
+ExecStart=/home/combine/combine/bin/server
 Restart=always
 RestartSec=5
 User=combine

@@ -3,12 +3,11 @@ import json
 import os
 
 import flask
-from lain import LSTM
 import pandas as pd
 from slider.mod import Mod
 from werkzeug import secure_filename
 
-api = flask.Blueprint('combine-uploader', __name__)
+api = flask.Blueprint('combine-server', __name__)
 
 
 @api.route('/')
@@ -103,7 +102,7 @@ def train():
         f'Your model is being trained, message {flask.g.bot_user} will message'
         ' you when your model is done training or if an error occurs.',
     )
-    return flask.redirect(flask.url_for('combine-uploader.index'))
+    return flask.redirect(flask.url_for('combine-server.index'))
 
 
 @api.route('/api/predict')

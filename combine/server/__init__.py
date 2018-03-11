@@ -32,7 +32,7 @@ def build_app(*,
     replay_cache_dir : path-like
         The path to the replay directory.
     token_secret : bytes
-        The shared secret for the uploader and irc server.
+        The shared secret for the web server and irc server.
     client : Client
         The client used to fetch beatmaps.
     bot_user : str

@@ -157,7 +157,7 @@ def gen_token(obj, user, expires):
     from .token import gen_token
 
     if expires is not None:
-        expires = pd.Timestamp(expires)
+        expires = pd.Timestamp(expires, tz='utc')
 
     print(gen_token(Fernet(obj.token_secret), user, expires=expires))
 

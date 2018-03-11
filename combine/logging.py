@@ -11,8 +11,6 @@ from humanize import naturaldelta
 from logbook import Logger, ERROR, NOTICE, DEBUG
 from logbook.more import ColorizedStderrHandler
 
-from .utils import instance
-
 
 class AlternateColorizedStderrHandler(ColorizedStderrHandler):
     """A logbook colorized handler that uses a different set of colors.

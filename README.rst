@@ -69,7 +69,7 @@ Example
 
    > !gen-token
    04:20 JoeJev: token: <lots of characters>
-   04:20 JoeJev: To copy the token, type `/savelog` and then navigate to your osu!/Char directory and open the newest file.
+   04:20 JoeJev: To copy the token, type `/savelog` and then navigate to your osu!/Chat directory and open the newest file.
 
 FAQ
 ---

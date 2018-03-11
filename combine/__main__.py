@@ -140,15 +140,26 @@ def irc(obj, daemon, repl_only):
     help='The user to create a token for.',
     required=True,
 )
+@click.option(
+    '--expires',
+    help=(
+        'The expiration time. If not provided, the token will be valid for 12'
+        ' hours.'
+    ),
+)
 @click.pass_obj
-def gen_token(obj, user):
+def gen_token(obj, user, expires):
     """Generate a token for a user.
     """
     from cryptography.fernet import Fernet
+    import pandas as pd
 
     from .token import gen_token
 
-    print(gen_token(Fernet(obj.token_secret), user))
+    if expires is not None:
+        expires = pd.Timestamp(expires)
+
+    print(gen_token(Fernet(obj.token_secret), user, expires=expires))
 
 
 @main.command()

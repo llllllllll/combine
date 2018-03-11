@@ -6,6 +6,7 @@ import flask
 from gunicorn.app.base import BaseApplication
 from lain import LSTM
 
+from ..logging import log
 from .views import api
 
 
@@ -76,6 +77,10 @@ def build_app(*,
         flask.g.email_address = email_address
         flask.g.train_queue = train_queue
         flask.g.get_model = get_model
+
+    @inner_app.errorhandler(Exception)
+    def handle_error(e):
+        log.exception(exc_info=(type(e), e, e.__traceback__))
 
     class app(BaseApplication):
         def load(self):

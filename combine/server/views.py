@@ -92,9 +92,11 @@ def train():
     else:
         age = None
 
+    user_replays = flask.g.replay_cache_dir / user
+    user_replays.mkdir(exist_okay=True)
     for file in flask.request.files.getlist('replays'):
         filename = secure_filename(file.filename)
-        file.save(os.fspath(flask.g.replay_cache_dir / user / filename))
+        file.save(os.fspath(user_replays / filename))
 
     flask.g.train_queue.enqueue_job(user, age)
     flask.flash(

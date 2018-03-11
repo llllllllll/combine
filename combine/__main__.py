@@ -175,7 +175,8 @@ def server(obj):
 @main.command()
 @click.pass_obj
 def train(obj):
-    """Run the model training service with consumes tasks put 
+    """Run the model training service with consumes tasks enqueued by the web
+    server.
     """
     from .train import run_train_queue
 

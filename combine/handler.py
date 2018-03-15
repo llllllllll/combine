@@ -253,21 +253,27 @@ class CombineHandler(Handler):
             raise KeyError(user)
 
     def _gen_candidates(self):
-        candidates = None
+        candidates = []
         while True:
             if not candidates:
                 since = datetime.datetime.now() - datetime.timedelta(days=365)
-                candidates = self.osu_client.beatmap(
-                    limit=500,
-                    game_mode=GameMode.standard,
-                    since=since,
-                )
+                # pull all the candidates in the same thread while we hold
+                # a lock
+                candidates = [
+                    beatmap
+                    for candidate in self.osu_client.beatmap(
+                        limit=500,
+                        game_mode=GameMode.standard,
+                        since=since,
+                    )
+                    for beatmap in [candidate.beatmap(save=True)]
+                    if candidate.approved == ApprovedState.ranked and
+                    len(beatmap.hit_objects) >= 2
+                ]
+
                 random.shuffle(candidates)
 
-            candidate = candidates.pop()
-            if (candidate.approved == ApprovedState.ranked and
-                    len(candidate.beatmap(save=True).hit_objects) >= 2):
-                yield candidate
+            yield candidates.pop()
 
     @staticmethod
     def _format_link(beatmap):

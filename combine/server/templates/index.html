@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <title>combine</title>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 
 {% with messages = get_flashed_messages() %}
   {% if messages %}
-    <ul class=flashes>
+    <ul class=flash>
     {% for message in messages %}
       <li>{{ message }}</li>
     {% endfor %}
@@ -17,35 +18,61 @@
   </a>
 </h1>
 
-<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 
 <h2>
   If you want to make this page look better, please email me at
   {{ email_address }}.
 </h2>
 
+<h3>Replays</h3>
+
+<div class="entry">
+Upload as many replays as you have! The game saves all your replays by default
+in osu!/data/r. You can upload the .osg files too, I will filter them out. For
+example, I personally use thousands of replays.
+
+I only use replays of maps which can be downloaded from osu!'s servers. I will
+also throw out any replays with non-ranked mods enabled.
+</div>
+
+<h3>Training Days</h3>
+
+<div class="entry">
+Training period in days. This is how many days back to look for replays. Because
+you are probably improving, it is not worthwhile to train on very old replays,
+so we filter them. Without parsing a .osr file you can't know how old it is, so
+I can do that for you.
+</div>
+
+<h3>Secret Token</h3>
+
+<div class="entry">
+Get this by sending {{ bot_user }} "!gen-token" in osu!.
+
+This is used to associate replays with the player that uploaded them. This
+string is really long because it is an encrypted token which tells me that you
+are who you say you are.
+</div>
+
 <form action="/train" method="post" enctype=multipart/form-data>
   <fieldset>
-    <legend>
-      upload your replays
-
     <div class="form-group">
       <label for="replays">
-        .osr files
+        replays
       </label>
       <input name=replays type=file multiple required>
     </div>
 
     <div class="form-group">
       <label for="training-days">
-        training period in days
+        training days
       </label>
       <input name="training-days" type=number value=182 min=0 required>
     </div>
 
     <div class="form-group">
       <label for="token">
-        secret token: get this by sending {{ bot_user }} "!gen-token" in osu!
+        secret token
       </label>
       <input name="token" type=text required>
     </div>

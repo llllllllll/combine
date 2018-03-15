@@ -259,17 +259,24 @@ class CombineHandler(Handler):
                 since = datetime.datetime.now() - datetime.timedelta(days=365)
                 # pull all the candidates in the same thread while we hold
                 # a lock
-                candidates = [
-                    beatmap
-                    for candidate in self.osu_client.beatmap(
-                        limit=500,
-                        game_mode=GameMode.standard,
-                        since=since,
-                    )
-                    for beatmap in [candidate.beatmap(save=True)]
-                    if candidate.approved == ApprovedState.ranked and
-                    len(beatmap.hit_objects) >= 2
-                ]
+                raw_candidates = self.osu_client.beatmap(
+                    limit=500,
+                    game_mode=GameMode.standard,
+                    since=since,
+                )
+                candidates = []
+                for raw_candidate in raw_candidates:
+                    try:
+                        beatmap = raw_candidate.beatmap(save=True)
+                    except Exception:
+                        log.exception(
+                            'failed to parse beatmap {raw_candidate}',
+                            raw_candidate,
+                        )
+                        continue
+
+                    if len(beatmap.hit_objects) >= 2:
+                        candidates.append(beatmap)
 
                 random.shuffle(candidates)
 

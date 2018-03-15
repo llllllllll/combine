@@ -266,6 +266,9 @@ class CombineHandler(Handler):
                 )
                 candidates = []
                 for raw_candidate in raw_candidates:
+                    if raw_candidate.approved != ApprovedState.ranked:
+                        continue
+
                     try:
                         beatmap = raw_candidate.beatmap(save=True)
                     except Exception:

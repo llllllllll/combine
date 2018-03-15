@@ -152,8 +152,21 @@ def _run_train_job(user, age_str, replay_cache_dir, model_cache_dir, client):
     failed = result.returncode != 0
     if failed:
         log.error(
-            'failed train job for user: {user}\n{stderr}',
+            'failed train job for user: {user}; params:\n'
+            '--replay-cache-dir={replay_cache_dir}\n'
+            '--model-cache-dir={model_cache_dir}\n'
+            '--library={library!s}\n'
+            '--api-key={censored_api_key}\n\n'
+            '{stderr}',
             user=user,
+            replay_cache_dir=os.fspath(replay_cache_dir),
+            model_cache_dir=os.fspath(model_cache_dir),
+            library=client.library,
+            censored_api_key=(
+                '<censored non empty string>'
+                if client.api_key else
+                '<empty string>'
+            ),
             stderr=result.stderr,
         )
     return failed

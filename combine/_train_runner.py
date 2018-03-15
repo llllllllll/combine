@@ -42,14 +42,15 @@ def run_job(user,
     from lain import LSTM
     from lain.train import load_replay_directory
     import pandas as pd
-    from slider import Client
+    from slider import Client, Library
 
-    osu_client = Client(library, api_key)
+    osu_client = Client(Library(library), api_key)
     replays = load_replay_directory(
         pathlib.Path(replay_cache_dir) / user,
         client=osu_client,
         age=pd.Timedelta(age) if age is not None else None,
         save=True,
+        verbose=True,
     )
 
     model = LSTM()

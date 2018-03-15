@@ -291,11 +291,12 @@ class CombineHandler(Handler):
     _mods = {
         'hard_rock': 'HR',
         'double_time': 'DT',
+        'half_time': 'HT',
         'hidden': 'HD',
     }
     _mod_powerset = list(powerset(_mods))
 
-    def _predict(self, model, beatmap, with_mods, without_mods):
+    def _predict(self, user, model, beatmap, with_mods, without_mods):
         """
         """
         all_mods = self._mods
@@ -311,8 +312,9 @@ class CombineHandler(Handler):
             accuracy = model.predict_beatmap(beatmap, *mod_masks)
         except Exception:
             log.exception(
-                'failed to predict beatmap {beatmap}',
+                'failed to predict beatmap {beatmap}, user={user}',
                 beatmap=beatmap,
+                user=user,
             )
             return ()
 
@@ -449,6 +451,7 @@ class CombineHandler(Handler):
 
             beatmap = candidate.beatmap()
             predictions = self._predict(
+                user,
                 model,
                 beatmap,
                 with_mods,

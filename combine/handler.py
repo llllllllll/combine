@@ -458,11 +458,10 @@ class CombineHandler(Handler):
 
         with_mods, without_mods = self._parse_recommend_args(msg)
 
-        for n, candidate in enumerate(self._candidates):
+        for n, beatmap in enumerate(self._candidates):
             if n > 50:
                 break
 
-            beatmap = candidate.beatmap()
             predictions = self._predict(
                 user,
                 model,

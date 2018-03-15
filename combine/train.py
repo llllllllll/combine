@@ -163,7 +163,7 @@ def _run_train_job(user, age_str, replay_cache_dir, model_cache_dir, client):
             model_cache_dir=os.fspath(model_cache_dir),
             library=client.library.path,
             censored_api_key=(
-                '<censored non empty string>'
+                '<censored non-empty string>'
                 if client.api_key else
                 '<empty string>'
             ),

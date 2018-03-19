@@ -7,6 +7,8 @@ import pandas as pd
 from slider.mod import Mod
 from werkzeug import secure_filename
 
+from ..logging import log
+
 api = flask.Blueprint('combine-server', __name__)
 
 
@@ -152,6 +154,7 @@ def predict():
     try:
         prediction = model.predict(beatmap, **mod_kwargs)
     except Exception:
+        log.exception('user {user}', user=token['user'])
         return 'failed to make prediction', 500
 
     return flask.jsonify(prediction.to_dict())

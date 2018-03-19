@@ -39,7 +39,7 @@ def run_job(user,
             api_key):
     import pathlib
 
-    from lain import LSTM
+    from lain import ErrorModel
     from lain.train import load_replay_directory
     import pandas as pd
     from slider import Client, Library
@@ -53,7 +53,7 @@ def run_job(user,
         verbose=True,
     )
 
-    model = LSTM()
+    model = ErrorModel()
     model.fit(replays)
 
     user_models = pathlib.Path(model_cache_dir) / user

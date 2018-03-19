@@ -137,23 +137,21 @@ def predict():
     mod_kwargs = {
         'hard_rock': unpacked.pop('hard_rock'),
         'double_time': unpacked.pop('double_time'),
+        'half_time': unpacked.pop('half_time'),
         'hidden': unpacked.pop('hidden'),
     }
 
     if any(unpacked.values()):
-        return 'only HD, HR, and DT can be used', 400
+        return 'only HD, HR, DT, and HT can be used', 400
 
     try:
         model = flask.g.get_model(token['user'])
     except KeyError:
         return 'no model trained', 404
 
-    accuracy = model.predict_beatmap(beatmap, **mod_kwargs).item()
+    try:
+        prediction = model.predict(beatmap, **mod_kwargs)
+    except Exception:
+        return 'failed to make prediction', 500
 
-    return flask.jsonify({
-        'accuracy': accuracy,
-        'performance_points': beatmap.performance_points(
-            accuracy=accuracy,
-            **mod_kwargs,
-        ),
-    })
+    return flask.jsonify(prediction.to_dict())

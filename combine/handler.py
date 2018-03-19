@@ -7,7 +7,7 @@ import re
 import threading
 
 from cryptography.fernet import Fernet
-from lain import LSTM
+from lain import ErrorModel
 import numpy as np
 from slider import GameMode, Mod
 from slider.client import ApprovedState
@@ -248,7 +248,7 @@ class CombineHandler(Handler):
 
     def _get_model(self, user):
         try:
-            return LSTM.load_path(self.model_cache_dir / user)
+            return ErrorModel.load_path(self.model_cache_dir / user)
         except FileNotFoundError:
             raise KeyError(user)
 
@@ -316,29 +316,26 @@ class CombineHandler(Handler):
         """
         """
         all_mods = self._mods
-        mod_masks = [
+        mod_masks = (
             {k: (k in mods) for k in all_mods}
             for mods in self._mod_powerset
             # enforce the pinned mods
             if all(k in mods for k in with_mods) and
             not any(k in mods for k in without_mods)
-        ]
+        )
 
         try:
-            accuracy = model.predict_beatmap(beatmap, *mod_masks)
+            return [
+                (mod_mask, model.predict(beatmap, **mod_mask))
+                for mod_mask in mod_masks
+            ]
         except Exception:
             log.exception(
                 'failed to predict beatmap {beatmap}, user={user}',
                 beatmap=beatmap,
                 user=user,
             )
-            return ()
-
-        pp = (
-            beatmap.performance_points(accuracy=acc, **mask)
-            for acc, mask in zip(accuracy, mod_masks)
-        )
-        return zip(mod_masks, accuracy, pp)
+            return []
 
     def _parse_recommend_args(self, msg):
         args = msg.strip().split()
@@ -374,9 +371,8 @@ class CombineHandler(Handler):
     def _format_beatmap_result(self,
                                beatmap,
                                mods,
-                               accuracy,
-                               pp,
-                               pp_curve):
+                               prediction,
+                               pp_curve=None):
         """Format the results for a beatmap.
 
         Parameters
@@ -385,38 +381,41 @@ class CombineHandler(Handler):
             The beatmap this is the result for.
         mods : str
             The formatted mods.
-        accuracy : float
-            The predicted accuracy from [0, 100].
-        pp : float
-            The predicted PP.
-        pp_curve : np.ndarray[float]
-            The pp curve for 95-100%.
+        prediction : lain.error_model.Prediction
+            The predicted results.
+        pp_curve : np.ndarray[float] or None, optional
+            The pp curve for 95-100%. If not given, this will not be displayed.
 
         Returns
         -------
         formatted : str
             The formatted message.
         """
-        pp_curve = pp_curve
-        formatted_curve = (
-            f"95-100%: [{', '.join(f'{p:.2f}' for p in pp_curve)}]"
-        )
-
-        if accuracy is None:
-            accuracy = '<unknown>'
+        if prediction is None:
+            accuracy = pp = fc = '<unknown>'
         else:
-            accuracy = f'{accuracy * 100:.2f}%'
-        if pp is None:
-            pp = '<unknown>'
-        else:
-            pp = f'{pp:.2f}pp'
+            accuracy = (
+                f'{prediction.accuracy_mean * 100:.2f}%'
+                f' +- {prediction.accuracy_std * 100:.2f}% (mean +- stddev)'
+            )
+            pp = (
+                f'{prediction.pp_mean:.2f}pp'
+                f' +- {prediction.pp_std:.2f}pp (mean +- stddev)'
+            )
+            fc = f'{prediction.full_clear_chance:.4f}%'
 
-        return (
+        out = (
             f'{self._format_link(beatmap)}'
             f' {mods} '
-            f' predicted: {accuracy} | {pp};'
-            f' actual: {formatted_curve}pp'
+            f' predicted: {accuracy} | {pp} | fc chance {fc}'
         )
+        if pp_curve is not None:
+            formatted_curve = (
+                f"95-100%: [{', '.join(f'{p:.2f}' for p in pp_curve)}]"
+            )
+            out += f'; actual: {formatted_curve}pp'
+
+        return out
 
     def _log_duration(f):
         @wraps(f)
@@ -439,7 +438,7 @@ class CombineHandler(Handler):
             )
 
         try:
-            user_average, upper_bound = self._user_stats[user]
+            lower_bound, upper_bound = self._user_stats[user]
         except KeyError:
             pp = np.array([
                 hs.pp
@@ -449,13 +448,14 @@ class CombineHandler(Handler):
             # ranked PP. Slice the weight vector in case the user has less than
             # 100 high scores.
             user_average = np.average(pp, weights=self._pp_weights[:len(pp)])
+            lower_bound = user_average - pp.std()
             # The model isn't very accurate for really hard maps it hasn't seen
             # This keeps the suggestions reasonable.
             upper_bound = pp.max() + (pp.std() / 2)
 
             # cache the PP lookup for a while
             self._user_stats[user] = (
-                (user_average, upper_bound),
+                (lower_bound, upper_bound),
                 datetime.datetime.now() + self._user_stats_cache_lifetime,
             )
 
@@ -472,8 +472,9 @@ class CombineHandler(Handler):
                 with_mods,
                 without_mods,
             )
-            for mask, accuracy, pp in predictions:
-                if user_average <= pp <= upper_bound and accuracy > 0.95:
+            for mask, prediction in predictions:
+                if (lower_bound <= prediction.pp_mean <= upper_bound and
+                        prediction.accuracy_mean >= 0.95):
                     if not any(mask.values()):
                         mods = ''
                     else:
@@ -493,12 +494,7 @@ class CombineHandler(Handler):
                         self._format_beatmap_result(
                             beatmap,
                             mods,
-                            accuracy,
-                            pp,
-                            beatmap.performance_points(
-                                accuracy=self._pp_curve_accuracies,
-                                **mask,
-                            )
+                            prediction,
                         ),
                     )
 
@@ -545,11 +541,9 @@ class CombineHandler(Handler):
                 user,
                 self._no_model_message.format(user=user, url=self.upload_url),
             )
-            accuracy = None
-            pp = None
+            prediction = None
         else:
-            accuracy = model.predict_beatmap(beatmap).item()
-            pp = beatmap.performance_points(accuracy=accuracy)
+            prediction = model.predict(beatmap)
 
         self.send(
             client,
@@ -557,8 +551,7 @@ class CombineHandler(Handler):
             self._format_beatmap_result(
                 beatmap,
                 '',
-                accuracy,
-                pp,
+                prediction,
                 pp_curve,
             ),
         )

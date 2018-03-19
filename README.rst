@@ -23,6 +23,7 @@ The valid mods are:
 
 - ``hd``: hidden
 - ``dt``: double time
+- ``ht``: half time
 - ``hr``: hard rock
 
 Example
@@ -31,15 +32,7 @@ Example
 .. code-block::
 
    > !r
-   04:20 JoeJev: FELT - New World [Euny's Insane] with DT predicted: 97.04% | 223.32pp
-   > !r HD -HR
-   04:20 JoeJev: Kohinata Miho (CV: Tsuda Minami) - Naked Romance [Karen's Insane] with DTHD predicted 95.82% | 245.81pp
-   > !r hdhr
-   04:20 JoeJev: fhana - What a Wonderful World Line [Melencholy] with HDHR predicted: 99.36% | 240.14pp
-
-Note: the second recommendation specified ``HD`` so we ensured that we suggested
-a map with ``HD``; however, it also has ``DT`` because we did explicit block
-it. The suggestion could not have ``HR`` because we specified ``-HR``.
+   04:20 [https://osu.ppy.sh/b/1031604 MYTH & ROID - Paradisus-Paradoxum [Re:Zero]]  with HD  predicted: 96.66% +- 0.73% (mean +- stddev) | 260.21pp +- 10.48pp (mean +- stddev) | fc chance 0.4235%
 
 ``/np``
 ~~~~~~~

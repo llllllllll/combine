@@ -157,4 +157,11 @@ def predict():
         log.exception('user {user}', user=token['user'])
         return 'failed to make prediction', 500
 
-    return flask.jsonify(prediction.to_dict())
+    return flask.jsonify({
+        'accuracy_mean': prediction.accuracy_mean,
+        'accuracy_std': prediction.accuracy_std,
+        'pp_mean': prediction.pp_mean,
+        'pp_std': prediction.pp_std,
+        'miss_chance': prediction.miss_chance,
+        'full_clear_chance': prediction.full_clear_chance,
+    })

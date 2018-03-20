@@ -162,6 +162,4 @@ def predict():
         'accuracy_std': prediction.accuracy_std,
         'pp_mean': prediction.pp_mean,
         'pp_std': prediction.pp_std,
-        'miss_chance': prediction.miss_chance,
-        'full_clear_chance': prediction.full_clear_chance,
     })

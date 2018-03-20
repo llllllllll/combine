@@ -392,7 +392,7 @@ class CombineHandler(Handler):
             The formatted message.
         """
         if prediction is None:
-            accuracy = pp = fc = '<unknown>'
+            accuracy = pp = '<unknown>'
         else:
             accuracy = (
                 f'{prediction.accuracy_mean * 100:.2f}%'
@@ -402,12 +402,11 @@ class CombineHandler(Handler):
                 f'{prediction.pp_mean:.2f}pp'
                 f' +- {prediction.pp_std:.2f}pp (mean +- stddev)'
             )
-            fc = f'{prediction.full_clear_chance:.4f}%'
 
         out = (
             f'{self._format_link(beatmap)}'
             f' {mods} '
-            f' predicted: {accuracy} | {pp} | fc chance {fc}'
+            f' predicted: {accuracy} | {pp}'
         )
         if pp_curve is not None:
             formatted_curve = (

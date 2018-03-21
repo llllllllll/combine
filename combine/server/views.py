@@ -7,6 +7,7 @@ import pandas as pd
 from slider.mod import Mod
 from werkzeug import secure_filename
 
+from ..format_result import format_result, format_mods
 from ..logging import log
 
 api = flask.Blueprint('combine-server', __name__)
@@ -162,4 +163,10 @@ def predict():
         'accuracy_std': prediction.accuracy_std,
         'pp_mean': prediction.pp_mean,
         'pp_std': prediction.pp_std,
+        'formatted_result': format_result(
+            beatmap,
+            format_mods(**mod_kwargs),
+            prediction,
+            show_link=False,
+        )
     })

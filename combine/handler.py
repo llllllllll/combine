@@ -13,6 +13,7 @@ from slider import GameMode, Mod
 from slider.client import ApprovedState
 
 from .expiring_cache import ExpiringCache
+from .format_result import format_result
 from .logging import log, log_duration
 from .token import gen_token
 from .utils import LockedIterator
@@ -285,25 +286,6 @@ class CombineHandler(Handler):
 
             yield candidates.pop()
 
-    @staticmethod
-    def _format_link(beatmap):
-        """Format a beatmap link to send back to the user.
-
-        Parameters
-        ----------
-        beatmap : Beatmap
-            The beatmap to format.
-
-        Returns
-        -------
-        link : str
-             The link to send back.
-        """
-        return (
-            f'[https://osu.ppy.sh/b/{beatmap.beatmap_id}'
-            f' {beatmap.display_name}]'
-        )
-
     _mods = {
         'hard_rock': 'HR',
         'double_time': 'DT',
@@ -367,54 +349,6 @@ class CombineHandler(Handler):
         " your replays. To associate the replays with your account, send me"
         " the command `!gen-token` and enter that along with your replays."
     )
-
-    def _format_beatmap_result(self,
-                               beatmap,
-                               mods,
-                               prediction,
-                               pp_curve=None):
-        """Format the results for a beatmap.
-
-        Parameters
-        ----------
-        beatmap : Beatmap
-            The beatmap this is the result for.
-        mods : str
-            The formatted mods.
-        prediction : lain.error_model.Prediction
-            The predicted results.
-        pp_curve : np.ndarray[float] or None, optional
-            The pp curve for 95-100%. If not given, this will not be displayed.
-
-        Returns
-        -------
-        formatted : str
-            The formatted message.
-        """
-        if prediction is None:
-            accuracy = pp = '<unknown>'
-        else:
-            accuracy = (
-                f'{prediction.accuracy_mean * 100:.2f}%'
-                f' +- {prediction.accuracy_std * 100:.2f}% (mean +- stddev)'
-            )
-            pp = (
-                f'{prediction.pp_mean:.2f}pp'
-                f' +- {prediction.pp_std:.2f}pp (mean +- stddev)'
-            )
-
-        out = (
-            f'{self._format_link(beatmap)}'
-            f' {mods} '
-            f' predicted: {accuracy} | {pp}'
-        )
-        if pp_curve is not None:
-            formatted_curve = (
-                f"95-100%: [{', '.join(f'{p:.2f}' for p in pp_curve)}]"
-            )
-            out += f'; actual: {formatted_curve}pp'
-
-        return out
 
     def _log_duration(f):
         @wraps(f)
@@ -490,10 +424,11 @@ class CombineHandler(Handler):
                     return self.send(
                         client,
                         user,
-                        self._format_beatmap_result(
+                        format_result(
                             beatmap,
                             mods,
                             prediction,
+                            show_link=True,
                         ),
                     )
 
@@ -547,11 +482,12 @@ class CombineHandler(Handler):
         self.send(
             client,
             user,
-            self._format_beatmap_result(
+            format_result(
                 beatmap,
                 '',
                 prediction,
                 pp_curve,
+                show_link=True,
             ),
         )
 

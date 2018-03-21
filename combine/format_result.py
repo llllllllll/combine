@@ -29,6 +29,8 @@ def format_mods(*, double_time, half_time, hidden, hard_rock):
     if hard_rock:
         out += 'HR'
 
+    if out:
+        out = f' with {out}'
     return out
 
 
@@ -45,10 +47,9 @@ def format_link(beatmap):
     link : str
         The link to send back.
     """
-    # intentionally add a space at the end, it looks nice in game
     return (
         f'[https://osu.ppy.sh/b/{beatmap.beatmap_id}'
-        f' {beatmap.display_name}] '
+        f' {beatmap.display_name}]'
     )
 
 

@@ -1,4 +1,24 @@
+import pathlib
 import threading
+
+from lain import ErrorModel
+
+
+def model_path(root, user):
+    """Return the path to a user's model.
+
+    Parameters
+    ----------
+    root : path-like
+        The root model directory.
+    user : str
+        The user to get the model path for.
+
+    model_path : pathlib.Path
+        The path to the user's model.
+    """
+    root = pathlib.Path(root)
+    return root / str(ErrorModel.version) / user
 
 
 def instance(cls):

@@ -7,6 +7,7 @@ from gunicorn.app.base import BaseApplication
 from lain import ErrorModel
 
 from ..logging import log
+from ..utils import model_path
 from .views import api
 
 
@@ -62,7 +63,7 @@ def build_app(*,
     @lru_cache(model_cache_size)
     def get_model(user):
         try:
-            return ErrorModel.load_path(model_cache_dir / user)
+            return ErrorModel.load_path(model_path(model_cache_dir, user))
         except FileNotFoundError:
             raise KeyError(user)
 

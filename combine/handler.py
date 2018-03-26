@@ -16,7 +16,7 @@ from .expiring_cache import ExpiringCache
 from .format_result import format_result
 from .logging import log, log_duration
 from .token import gen_token
-from .utils import LockedIterator
+from .utils import LockedIterator, model_path
 
 
 class _command:
@@ -249,7 +249,7 @@ class CombineHandler(Handler):
 
     def _get_model(self, user):
         try:
-            return ErrorModel.load_path(self.model_cache_dir / user)
+            return ErrorModel.load_path(model_path(self.model_cache_dir, user))
         except FileNotFoundError:
             raise KeyError(user)
 

@@ -44,6 +44,8 @@ def run_job(user,
     import pandas as pd
     from slider import Client, Library
 
+    from combine.utils import model_path
+
     osu_client = Client(Library(library), api_key)
     replays = load_replay_directory(
         pathlib.Path(replay_cache_dir) / user,
@@ -56,8 +58,8 @@ def run_job(user,
     model = ErrorModel()
     model.fit(replays)
 
-    user_models = pathlib.Path(model_cache_dir) / user
-    user_models.mkdir(exist_ok=True)
+    user_models = model_path(model_cache_dir, user)
+    user_models.mkdir(parents=True, exist_ok=True)
     model.save_path(user_models)
 
 

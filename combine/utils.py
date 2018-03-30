@@ -14,11 +14,13 @@ def model_path(root, user):
     user : str
         The user to get the model path for.
 
+    Returns
+    -------
     model_path : pathlib.Path
         The path to the user's model.
     """
     root = pathlib.Path(root)
-    return root / str(ErrorModel.version) / user
+    return root / user / str(ErrorModel.version)
 
 
 def instance(cls):
